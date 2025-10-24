@@ -320,20 +320,21 @@ else
 
         if [ $attempt -eq $max_attempts ]; then
             print_warning "⚠️  DNS propagation timeout. You can run SSL setup manually later:"
-            print_warning "sudo certbot --nginx -d $MAIN_DOMAIN -d www.$MAIN_DOMAIN -d $API_DOMAIN -d $CDN_DOMAIN"
+            print_warning "sudo certbot --nginx -d $MAIN_DOMAIN -d www.$MAIN_DOMAIN -d $API_DOMAIN"
             exit 1
         fi
     fi
     
     # Set up SSL certificates automatically
     print_status "🔒 Setting up SSL certificates with Let's Encrypt..."
-    sudo certbot --nginx -d $MAIN_DOMAIN -d www.$MAIN_DOMAIN -d $API_DOMAIN -d $CDN_DOMAIN --non-interactive --agree-tos --email admin@$MAIN_DOMAIN --redirect
+    print_status "Note: CDN domain ($CDN_DOMAIN) points to S3, so SSL is handled by DigitalOcean Spaces"
+    sudo certbot --nginx -d $MAIN_DOMAIN -d www.$MAIN_DOMAIN -d $API_DOMAIN --non-interactive --agree-tos --email admin@$MAIN_DOMAIN --redirect
     
     if [ $? -eq 0 ]; then
         print_status "✅ SSL certificates installed successfully!"
     else
         print_warning "⚠️  SSL certificate setup failed. You can try manually:"
-        print_warning "sudo certbot --nginx -d $MAIN_DOMAIN -d www.$MAIN_DOMAIN -d $API_DOMAIN -d $CDN_DOMAIN"
+        print_warning "sudo certbot --nginx -d $MAIN_DOMAIN -d www.$MAIN_DOMAIN -d $API_DOMAIN"
     fi
 fi
 
