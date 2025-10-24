@@ -124,7 +124,10 @@ if [ ! -d "/var/www/zerafile/.git" ]; then
 else
     print_status "Repository already exists, pulling latest changes..."
     cd /var/www/zerafile
-    git pull
+    # Force pull to avoid merge conflicts - always use remote version
+    git fetch origin
+    git reset --hard origin/main
+    print_status "✅ Forced pull completed - using remote version"
 fi
 
 print_step "Step 4: Installing dependencies and building applications..."

@@ -42,7 +42,10 @@ if ! pm2 list | grep -q "zerafile-api\|zerafile-web"; then
 fi
 
 print_step "Step 2: Pulling latest changes..."
-git pull
+# Force pull to avoid merge conflicts - always use remote version
+git fetch origin
+git reset --hard origin/main
+print_status "✅ Forced pull completed - using remote version"
 
 print_step "Step 3: Installing dependencies (in background)..."
 # Install dependencies in background to reduce downtime

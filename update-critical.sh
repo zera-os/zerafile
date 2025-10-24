@@ -35,9 +35,10 @@ cd /var/www/zerafile
 
 print_status "🚀 Starting critical update..."
 
-# Quick git pull
+# Quick git pull - force to remote version
 print_status "Pulling latest changes..."
-git pull
+git fetch origin
+git reset --hard origin/main
 
 # Parallel build and install
 print_status "Building and installing in parallel..."
