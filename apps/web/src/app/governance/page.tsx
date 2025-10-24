@@ -22,22 +22,21 @@ export default function GovernancePage() {
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
-                 <div className="flex items-center space-x-8">
-                   <button 
-                     onClick={handleLogoClick}
-                     className="text-2xl font-bold text-primary hover:text-primary/80 transition-colors cursor-pointer bg-transparent border-none p-0"
-                   >
-                     zerafile
-                   </button>
-              <nav className="flex items-center space-x-6">
-                <Link href="/governance" className="text-primary font-medium">
-                  Governance
-                </Link>
-                <Link href="/tokens" className="text-muted-foreground hover:text-foreground">
-                  Tokens
-                </Link>
-              </nav>
-            </div>
+            <button 
+              onClick={handleLogoClick}
+              className="text-2xl font-bold text-primary hover:text-primary/80 transition-colors cursor-pointer bg-transparent border-none p-0"
+              style={{ transform: 'translateY(-1px)' }}
+            >
+              zerafile
+            </button>
+            <nav className="flex items-center space-x-6">
+              <Link href="/governance" className="text-primary font-medium">
+                Governance
+              </Link>
+              <Link href="/tokens" className="text-muted-foreground hover:text-foreground">
+                Tokens
+              </Link>
+            </nav>
           </div>
         </div>
       </header>
@@ -46,7 +45,7 @@ export default function GovernancePage() {
       <main className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
           {/* Hero Section */}
-          <div className="text-center mb-6">
+          <div className="text-center">
             <div className="relative inline-block mb-8">
               <div className="absolute inset-0 gradient-bg organic-shape opacity-20 blur-3xl"></div>
               <div className="relative gradient-bg organic-shape p-10">

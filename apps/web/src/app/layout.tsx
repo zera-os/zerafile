@@ -1,8 +1,13 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'Zerafile',
-  description: 'Zerafile - File hosting and URI metadata service',
+  title: 'ZERAfile.io',
+  description: 'ZERAfile - File hosting and URI metadata service',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({

@@ -19,28 +19,21 @@ export default function TermsPage() {
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-8">
-              <button 
-                onClick={handleLogoClick}
-                className="text-2xl font-bold text-primary hover:text-primary/80 transition-colors cursor-pointer bg-transparent border-none p-0"
-              >
-                zerafile
-              </button>
-              <nav className="flex items-center space-x-6">
-                <Link href="/governance" className="text-muted-foreground hover:text-foreground">
-                  Governance
-                </Link>
-                <Link href="/tokens" className="text-muted-foreground hover:text-foreground">
-                  Tokens
-                </Link>
-              </nav>
-            </div>
-            <Link href="/governance">
-              <Button variant="outline" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
-            </Link>
+            <button 
+              onClick={handleLogoClick}
+              className="text-2xl font-bold text-primary hover:text-primary/80 transition-colors cursor-pointer bg-transparent border-none p-0"
+              style={{ transform: 'translateY(-1px)' }}
+            >
+              zerafile
+            </button>
+            <nav className="flex items-center space-x-6">
+              <Link href="/governance" className="text-muted-foreground hover:text-foreground">
+                Governance
+              </Link>
+              <Link href="/tokens" className="text-muted-foreground hover:text-foreground">
+                Tokens
+              </Link>
+            </nav>
           </div>
         </div>
       </header>
