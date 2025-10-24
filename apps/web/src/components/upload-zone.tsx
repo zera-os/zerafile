@@ -87,7 +87,7 @@ export function UploadZone({ pathHint = 'governance', contractId, disabled = fal
     // Validate file extension
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (!ext || !isAllowedExt(ext)) {
-      setError(`Invalid file type. Supported: PDF documents, images (PNG, JPG, JPEG, GIF, WebP), office files (XLSX, DOCX)`);
+      setError(`Invalid file type. Supported: PDF documents, images (PNG, JPG, JPEG, GIF, WebP), office files (XLSX, DOCX), JSON files`);
       return;
     }
 

@@ -6,7 +6,7 @@ Nothing in this service is security sensitive, and not a lot of care was taken i
 
 ## Features
 
-- **File Upload**: Upload PDF documents, images (PNG, JPG, JPEG, GIF, WebP), and office files (XLSX, DOCX) up to 5MB
+- **File Upload**: Upload PDF documents, images (PNG, JPG, JPEG, GIF, WebP), office files (XLSX, DOCX), and JSON files up to 5MB
 - **Governance Section**: Upload governance documents and proposals with random file IDs
 - **Token Section**: Upload token assets and create URI metadata for contract IDs
 - **Direct CDN Access**: Files served via DigitalOcean Spaces CDN for fast, reliable access
@@ -261,7 +261,7 @@ For token assets, a valid contract ID is required:
 ## File Constraints
 
 - **Size Limit**: 5MB maximum per file
-- **Allowed Types**: PDF documents, images (PNG, JPG, JPEG, GIF, WebP), office files (XLSX, DOCX)
+- **Allowed Types**: PDF documents, images (PNG, JPG, JPEG, GIF, WebP), office files (XLSX, DOCX), JSON files
 - **MIME Validation**: Server-side validation after upload
 - **Cache Headers**: 1 year immutable cache for files and JSON
 - **Download Required**: XLSX and DOCX files require download (no preview)

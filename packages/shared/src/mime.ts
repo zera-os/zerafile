@@ -10,6 +10,7 @@ export const EXT_TO_MIME: Record<string, string> = {
   webp: 'image/webp',
   xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  json: 'application/json',
 } as const;
 
 /**
