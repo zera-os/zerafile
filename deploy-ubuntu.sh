@@ -99,9 +99,14 @@ sudo chown $USER:$USER /var/www/zerafile
 # Check if repository is already cloned
 if [ ! -d "/var/www/zerafile/.git" ]; then
     print_warning "Repository not found in /var/www/zerafile"
-    print_warning "Please clone your repository first:"
-    print_warning "git clone https://github.com/yourusername/zerafile.git /var/www/zerafile"
-    exit 1
+    print_status "Cloning repository..."
+    cd /var/www/zerafile
+    git clone https://github.com/zera-os/zerafile.git .
+    print_status "Repository cloned successfully"
+else
+    print_status "Repository already exists, pulling latest changes..."
+    cd /var/www/zerafile
+    git pull
 fi
 
 print_step "Step 4: Installing dependencies and building applications..."
