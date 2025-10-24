@@ -30,12 +30,6 @@ print_step() {
     echo -e "${BLUE}[STEP]${NC} $1"
 }
 
-# Check if running as root
-if [[ $EUID -eq 0 ]]; then
-   print_error "This script should not be run as root. Please run as a regular user with sudo privileges."
-   exit 1
-fi
-
 print_step "Step 1: Updating system packages..."
 sudo apt update && sudo apt upgrade -y
 
