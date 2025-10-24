@@ -129,17 +129,21 @@ fi
 
 print_step "Step 6: Setting up Nginx configurations..."
 
-# Main site configuration
-sudo tee /etc/nginx/sites-available/zerafile.io > /dev/null <<EOF
+# Set domain variables
+MAIN_DOMAIN="zerafile.io"
+API_DOMAIN="api.zerafile.io"
+CDN_DOMAIN="cdn.zerafile.io"
+
+print_status "Configuring Nginx for domains:"
+print_status "  Main: $MAIN_DOMAIN"
+print_status "  API: $API_DOMAIN"
+print_status "  CDN: $CDN_DOMAIN"
+
+# Main site configuration (HTTP only - SSL will be added by Certbot)
+sudo tee /etc/nginx/sites-available/$MAIN_DOMAIN > /dev/null <<EOF
 server {
     listen 80;
-    server_name zerafile.io www.zerafile.io;
-    return 301 https://\$server_name\$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name zerafile.io www.zerafile.io;
+    server_name $MAIN_DOMAIN www.$MAIN_DOMAIN;
 
     location / {
         proxy_pass http://localhost:3000;
@@ -155,17 +159,11 @@ server {
 }
 EOF
 
-# API configuration
-sudo tee /etc/nginx/sites-available/api.zerafile.io > /dev/null <<EOF
+# API configuration (HTTP only - SSL will be added by Certbot)
+sudo tee /etc/nginx/sites-available/$API_DOMAIN > /dev/null <<EOF
 server {
     listen 80;
-    server_name api.zerafile.io;
-    return 301 https://\$server_name\$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name api.zerafile.io;
+    server_name $API_DOMAIN;
 
     location / {
         proxy_pass http://localhost:8080;
@@ -181,17 +179,11 @@ server {
 }
 EOF
 
-# CDN configuration
-sudo tee /etc/nginx/sites-available/cdn.zerafile.io > /dev/null <<EOF
+# CDN configuration (HTTP only - SSL will be added by Certbot)
+sudo tee /etc/nginx/sites-available/$CDN_DOMAIN > /dev/null <<EOF
 server {
     listen 80;
-    server_name cdn.zerafile.io;
-    return 301 https://\$server_name\$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name cdn.zerafile.io;
+    server_name $CDN_DOMAIN;
 
     location / {
         proxy_pass https://zerafile.nyc3.digitaloceanspaces.com;
@@ -208,9 +200,9 @@ EOF
 
 print_step "Step 7: Enabling Nginx sites..."
 # Enable sites
-sudo ln -sf /etc/nginx/sites-available/zerafile.io /etc/nginx/sites-enabled/
-sudo ln -sf /etc/nginx/sites-available/api.zerafile.io /etc/nginx/sites-enabled/
-sudo ln -sf /etc/nginx/sites-available/cdn.zerafile.io /etc/nginx/sites-enabled/
+sudo ln -sf /etc/nginx/sites-available/$MAIN_DOMAIN /etc/nginx/sites-enabled/
+sudo ln -sf /etc/nginx/sites-available/$API_DOMAIN /etc/nginx/sites-enabled/
+sudo ln -sf /etc/nginx/sites-available/$CDN_DOMAIN /etc/nginx/sites-enabled/
 
 # Remove default site
 sudo rm -f /etc/nginx/sites-enabled/default
@@ -249,13 +241,13 @@ print_warning "   - Edit /var/www/zerafile/apps/api/.env"
 print_warning "   - Edit /var/www/zerafile/apps/web/.env.local"
 print_warning ""
 print_warning "2. Set up SSL certificates:"
-print_warning "   sudo certbot --nginx -d zerafile.io -d www.zerafile.io -d api.zerafile.io -d cdn.zerafile.io"
+print_warning "   sudo certbot --nginx -d $MAIN_DOMAIN -d www.$MAIN_DOMAIN -d $API_DOMAIN -d $CDN_DOMAIN"
 print_warning ""
 print_warning "3. Configure your DNS records to point to this server:"
-print_warning "   A     zerafile.io        → $(curl -s ifconfig.me)"
-print_warning "   A     www.zerafile.io    → $(curl -s ifconfig.me)"
-print_warning "   A     api.zerafile.io    → $(curl -s ifconfig.me)"
-print_warning "   A     cdn.zerafile.io    → $(curl -s ifconfig.me)"
+print_warning "   A     $MAIN_DOMAIN        → $(curl -s ifconfig.me)"
+print_warning "   A     www.$MAIN_DOMAIN    → $(curl -s ifconfig.me)"
+print_warning "   A     $API_DOMAIN         → $(curl -s ifconfig.me)"
+print_warning "   A     $CDN_DOMAIN         → $(curl -s ifconfig.me)"
 print_warning ""
 print_warning "4. Set up DigitalOcean Spaces bucket and configure CORS"
 
@@ -264,7 +256,15 @@ print_status "Useful commands:"
 echo "  pm2 status                    # Check application status"
 echo "  pm2 logs zerafile-api         # View API logs"
 echo "  pm2 logs zerafile-web         # View web app logs"
-echo "  pm2 restart all              # Restart all applications"
+echo "  pm2 restart all              # Restart all applications (after adding env files)"
 echo "  sudo nginx -t                 # Test Nginx configuration"
 echo "  sudo systemctl status nginx   # Check Nginx status"
 echo "  sudo ufw status               # Check firewall status"
+echo ""
+print_status "After adding environment files, restart services:"
+echo "  pm2 restart all              # Restart applications with new env vars"
+echo ""
+print_status "Test your sites (after DNS propagation):"
+echo "  curl http://$MAIN_DOMAIN"
+echo "  curl http://$API_DOMAIN/health"
+echo "  curl http://$CDN_DOMAIN"
