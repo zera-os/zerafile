@@ -268,7 +268,26 @@ else
     check_domain() {
         local domain=$1
         local server_ip=$(curl -s ifconfig.me)
-        local resolved_ip=$(dig +short $domain | tail -n1)
+        
+        # Try multiple methods to get resolved IP
+        local resolved_ip=""
+        
+        # Method 1: Try dig
+        if command -v dig &> /dev/null; then
+            resolved_ip=$(dig +short $domain | tail -n1)
+        fi
+        
+        # Method 2: Try nslookup if dig fails
+        if [ -z "$resolved_ip" ] && command -v nslookup &> /dev/null; then
+            resolved_ip=$(nslookup $domain | grep "Address:" | tail -n1 | awk '{print $2}')
+        fi
+        
+        # Method 3: Try getent if available
+        if [ -z "$resolved_ip" ] && command -v getent &> /dev/null; then
+            resolved_ip=$(getent hosts $domain | awk '{print $1}' | head -n1)
+        fi
+        
+        print_status "Checking $domain: server_ip=$server_ip, resolved_ip=$resolved_ip"
         
         if [ "$resolved_ip" = "$server_ip" ]; then
             return 0
@@ -278,35 +297,43 @@ else
     }
 
     # Wait for DNS propagation
-    max_attempts=30
-    attempt=0
-    while [ $attempt -lt $max_attempts ]; do
-        attempt=$((attempt + 1))
-        print_status "DNS check attempt $attempt/$max_attempts..."
-        
-        if check_domain $MAIN_DOMAIN && check_domain $API_DOMAIN && check_domain $CDN_DOMAIN; then
-            print_status "✅ All domains are resolving correctly!"
-            break
-        else
-            print_status "⏳ Waiting for DNS propagation... (attempt $attempt/$max_attempts)"
-            sleep 30
-        fi
-    done
-
-    if [ $attempt -eq $max_attempts ]; then
-        print_warning "⚠️  DNS propagation timeout. You can run SSL setup manually later:"
-        print_warning "sudo certbot --nginx -d $MAIN_DOMAIN -d www.$MAIN_DOMAIN -d $API_DOMAIN -d $CDN_DOMAIN"
+    print_status "Do you want to skip DNS check and proceed with SSL setup? (y/n)"
+    read -r skip_dns
+    
+    if [ "$skip_dns" = "y" ] || [ "$skip_dns" = "Y" ]; then
+        print_status "⏭️  Skipping DNS check - proceeding with SSL setup..."
     else
-        # Set up SSL certificates automatically
-        print_status "🔒 Setting up SSL certificates with Let's Encrypt..."
-        sudo certbot --nginx -d $MAIN_DOMAIN -d www.$MAIN_DOMAIN -d $API_DOMAIN -d $CDN_DOMAIN --non-interactive --agree-tos --email admin@$MAIN_DOMAIN --redirect
-        
-        if [ $? -eq 0 ]; then
-            print_status "✅ SSL certificates installed successfully!"
-        else
-            print_warning "⚠️  SSL certificate setup failed. You can try manually:"
+        max_attempts=30
+        attempt=0
+        while [ $attempt -lt $max_attempts ]; do
+            attempt=$((attempt + 1))
+            print_status "DNS check attempt $attempt/$max_attempts..."
+            
+            if check_domain $MAIN_DOMAIN && check_domain $API_DOMAIN; then
+                print_status "✅ All domains are resolving correctly!"
+                break
+            else
+                print_status "⏳ Waiting for DNS propagation... (attempt $attempt/$max_attempts)"
+                sleep 30
+            fi
+        done
+
+        if [ $attempt -eq $max_attempts ]; then
+            print_warning "⚠️  DNS propagation timeout. You can run SSL setup manually later:"
             print_warning "sudo certbot --nginx -d $MAIN_DOMAIN -d www.$MAIN_DOMAIN -d $API_DOMAIN -d $CDN_DOMAIN"
+            exit 1
         fi
+    fi
+    
+    # Set up SSL certificates automatically
+    print_status "🔒 Setting up SSL certificates with Let's Encrypt..."
+    sudo certbot --nginx -d $MAIN_DOMAIN -d www.$MAIN_DOMAIN -d $API_DOMAIN -d $CDN_DOMAIN --non-interactive --agree-tos --email admin@$MAIN_DOMAIN --redirect
+    
+    if [ $? -eq 0 ]; then
+        print_status "✅ SSL certificates installed successfully!"
+    else
+        print_warning "⚠️  SSL certificate setup failed. You can try manually:"
+        print_warning "sudo certbot --nginx -d $MAIN_DOMAIN -d www.$MAIN_DOMAIN -d $API_DOMAIN -d $CDN_DOMAIN"
     fi
 fi
 
