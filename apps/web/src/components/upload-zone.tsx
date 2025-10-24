@@ -6,14 +6,24 @@ import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { isAllowedExt, ALLOWED_EXTENSIONS } from '@zerafile/shared';
 import { config } from '../lib/config';
+import { clientRateLimiter, formatBytes, formatTimeUntilReset } from '../lib/rate-limiter';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+}
 
 interface UploadResult {
   id: string;
   filename: string;
   cdnUrl: string;
   uploadedAt: Date;
+  fileSize: number;
 }
 
 interface UploadProgress {
@@ -61,6 +71,19 @@ export function UploadZone({ pathHint = 'governance', contractId, disabled = fal
       return;
     }
 
+    // Check client-side rate limits
+    const fileLimitCheck = clientRateLimiter.checkFileLimit();
+    if (!fileLimitCheck.allowed) {
+      setError(`Rate limit exceeded: ${fileLimitCheck.remaining} files remaining. Reset in ${formatTimeUntilReset(fileLimitCheck.resetTime)}`);
+      return;
+    }
+
+    const dataLimitCheck = clientRateLimiter.checkDataLimit(file.size);
+    if (!dataLimitCheck.allowed) {
+      setError(`Rate limit exceeded: ${formatBytes(dataLimitCheck.remaining)} remaining. Reset in ${formatTimeUntilReset(dataLimitCheck.resetTime)}`);
+      return;
+    }
+
     // Validate file extension
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (!ext || !isAllowedExt(ext)) {
@@ -72,10 +95,7 @@ export function UploadZone({ pathHint = 'governance', contractId, disabled = fal
     setUploadProgress({ filename: file.name, progress: 0, stage: 'init' });
 
     try {
-      console.log('Starting upload process...');
-      
       // Step 1: Initialize upload
-      console.log('Step 1: Initializing upload...');
       setUploadProgress({ filename: file.name, progress: 10, stage: 'init' });
       const initResponse = await fetch(`${config.apiBase}/v1/uploads/init`, {
         method: 'POST',
@@ -89,18 +109,14 @@ export function UploadZone({ pathHint = 'governance', contractId, disabled = fal
         }),
       });
 
-      console.log('Init response status:', initResponse.status);
-      
       if (!initResponse.ok) {
-        const errorData = await initResponse.json();
+        const errorData = await initResponse.json() as { error?: string };
         throw new Error(errorData.error || 'Failed to initialize upload');
       }
 
-      const { presignedUrl, key, cdnUrl } = await initResponse.json();
-      console.log('Step 1 complete. Presigned URL received:', presignedUrl);
+      const { presignedUrl, key, cdnUrl } = await initResponse.json() as { presignedUrl: string; key: string; cdnUrl: string };
 
       // Step 2: Upload file to presigned URL
-      console.log('Step 2: Uploading file to presigned URL...');
       setUploadProgress({ filename: file.name, progress: 20, stage: 'upload' });
       
       const uploadResponse = await fetch(presignedUrl, {
@@ -111,17 +127,12 @@ export function UploadZone({ pathHint = 'governance', contractId, disabled = fal
         },
       });
 
-      console.log('Upload response status:', uploadResponse.status);
-      console.log('Upload response headers:', Object.fromEntries(uploadResponse.headers.entries()));
-      
       if (!uploadResponse.ok) {
         const errorText = await uploadResponse.text();
-        console.error('Upload error response:', errorText);
-        throw new Error(`Failed to upload file: ${uploadResponse.status} ${uploadResponse.statusText}`);
+        throw new Error(`Failed to upload file: ${uploadResponse.status} ${uploadResponse.statusText} - ${errorText}`);
       }
 
       // Step 3: Complete upload
-      console.log('Step 3: Completing upload...');
       setUploadProgress({ filename: file.name, progress: 80, stage: 'complete' });
       
       const completeResponse = await fetch(`${config.apiBase}/v1/uploads/complete`, {
@@ -132,15 +143,15 @@ export function UploadZone({ pathHint = 'governance', contractId, disabled = fal
         body: JSON.stringify({ key }),
       });
 
-      console.log('Complete response status:', completeResponse.status);
-      
       if (!completeResponse.ok) {
-        const errorData = await completeResponse.json();
+        const errorData = await completeResponse.json() as { error?: string };
         throw new Error(errorData.error || 'Failed to complete upload');
       }
 
-      console.log('Upload completed successfully!');
       setUploadProgress({ filename: file.name, progress: 100, stage: 'complete' });
+      
+      // Record the upload for client-side rate limiting
+      clientRateLimiter.recordUpload(file.size);
       
       // Add to upload results
       const newResult: UploadResult = {
@@ -148,11 +159,11 @@ export function UploadZone({ pathHint = 'governance', contractId, disabled = fal
         filename: file.name,
         cdnUrl,
         uploadedAt: new Date(),
+        fileSize: file.size,
       };
       
       setUploadResults(prev => [newResult, ...prev]);
     } catch (err) {
-      console.error('Upload error:', err);
       setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setIsUploading(false);
@@ -160,26 +171,33 @@ export function UploadZone({ pathHint = 'governance', contractId, disabled = fal
     }
   }, [contractId, pathHint]);
 
+  const handleFiles = useCallback(async (files: File[]) => {
+    // Process files sequentially to avoid overwhelming the server
+    for (const file of files) {
+      await handleFile(file);
+    }
+  }, [handleFile]);
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-    
+
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
-      handleFile(files[0]);
+      handleFiles(files as File[]);
     }
-  }, [handleFile]);
+  }, [handleFiles]);
 
   const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
+    const files = Array.from(e.currentTarget.files || []);
     if (files.length > 0) {
-      handleFile(files[0]);
+      handleFiles(files as File[]);
     }
-  }, [handleFile]);
+  }, [handleFiles]);
 
   const copyToClipboard = async (text: string, id: string) => {
     try {
-      await navigator.clipboard.writeText(text);
+      await (globalThis as any).navigator.clipboard.writeText(text);
       setCopied(id);
       setTimeout(() => setCopied(null), 2000);
     } catch (err) {
@@ -193,7 +211,7 @@ export function UploadZone({ pathHint = 'governance', contractId, disabled = fal
       <div
         className={`relative border-2 border-dashed rounded-2xl p-12 text-center transition-colors ${
           disabled
-            ? 'border-muted bg-muted/10 cursor-not-allowed'
+            ? 'border-red-500/30 bg-red-500/5 cursor-not-allowed'
             : isDragOver
             ? 'border-primary bg-primary/5'
             : 'border-border hover:border-primary/50'
@@ -205,34 +223,49 @@ export function UploadZone({ pathHint = 'governance', contractId, disabled = fal
         }}
         onDragLeave={disabled ? undefined : () => setIsDragOver(false)}
       >
-        <input
-          type="file"
-          accept={ALLOWED_EXTENSIONS.map(ext => `.${ext}`).join(',')}
-          onChange={disabled ? undefined : handleFileInput}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-          disabled={isUploading || disabled}
-        />
+           <input
+             type="file"
+             multiple
+             accept={ALLOWED_EXTENSIONS.map(ext => `.${ext}`).join(',')}
+             onChange={disabled ? undefined : handleFileInput}
+             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+             disabled={isUploading || disabled}
+           />
         
         <div className="space-y-4">
-          <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-            <Upload className="h-8 w-8 text-primary" />
+          <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center ${
+            disabled 
+              ? 'bg-red-500/10 border-2 border-red-500/30' 
+              : 'bg-primary/10'
+          }`}>
+            <Upload className={`h-8 w-8 ${
+              disabled 
+                ? 'text-red-500' 
+                : 'text-primary'
+            }`} />
           </div>
           
           <div>
-            <h3 className="text-lg font-semibold mb-2">
-              {disabled 
-                ? 'Enter a valid Contract ID to upload files'
-                : isUploading 
-                ? 'Uploading...' 
-                : 'Drop files here or click to upload'
-              }
-            </h3>
-            <p className="text-muted-foreground">
-              {disabled 
-                ? 'Contract ID is required for token uploads'
-                : 'Supports PDF documents, images (PNG, JPG, JPEG, GIF, WebP), and office files (XLSX, DOCX) up to 5MB'
-              }
-            </p>
+                 <h3 className={`text-lg font-semibold mb-2 ${
+                   disabled ? 'text-red-500' : ''
+                 }`}>
+                   {disabled 
+                     ? '⚠️ Contract ID Required'
+                     : isUploading 
+                     ? 'Uploading...' 
+                     : 'Drop files here or click to upload'
+                   }
+                 </h3>
+                 <p className={`text-sm ${
+                   disabled 
+                     ? 'text-red-400' 
+                     : 'text-muted-foreground'
+                 }`}>
+                   {disabled 
+                     ? 'Please enter a valid Contract ID above to enable file uploads'
+                     : 'Supports multiple files: PDF documents, images (PNG, JPG, JPEG, GIF, WebP), and office files (XLSX, DOCX) up to 5MB each'
+                   }
+                 </p>
           </div>
         </div>
       </div>
@@ -299,7 +332,7 @@ export function UploadZone({ pathHint = 'governance', contractId, disabled = fal
                       <div className="min-w-0 flex-1">
                         <div className="font-medium text-sm truncate">{result.filename}</div>
                         <div className="text-xs text-muted-foreground">
-                          {result.uploadedAt.toLocaleTimeString()}
+                          {result.uploadedAt.toLocaleTimeString()} • {formatFileSize(result.fileSize)}
                         </div>
                       </div>
                     </div>

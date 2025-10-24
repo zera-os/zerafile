@@ -1,19 +1,35 @@
+'use client';
+
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Upload, FileText, Copy, ExternalLink, Shield, Users } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { UploadZone } from '../../components/upload-zone';
+import { Footer } from '../../components/footer';
+import { LegalNotice } from '../../components/legal-notice';
 
 export default function GovernancePage() {
+  const router = useRouter();
+
+  const handleLogoClick = () => {
+    console.log('Logo clicked!');
+    router.replace('/governance');
+  };
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-8">
-              <h1 className="text-2xl font-bold text-primary">zerafile</h1>
-              <nav className="flex space-x-6">
+                 <div className="flex items-center space-x-8">
+                   <button 
+                     onClick={handleLogoClick}
+                     className="text-2xl font-bold text-primary hover:text-primary/80 transition-colors cursor-pointer bg-transparent border-none p-0"
+                   >
+                     zerafile
+                   </button>
+              <nav className="flex items-center space-x-6">
                 <Link href="/governance" className="text-primary font-medium">
                   Governance
                 </Link>
@@ -30,7 +46,7 @@ export default function GovernancePage() {
       <main className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
           {/* Hero Section */}
-          <div className="text-center mb-12">
+          <div className="text-center mb-6">
             <div className="relative inline-block mb-8">
               <div className="absolute inset-0 gradient-bg organic-shape opacity-20 blur-3xl"></div>
               <div className="relative gradient-bg organic-shape p-10">
@@ -43,6 +59,9 @@ export default function GovernancePage() {
               </div>
             </div>
           </div>
+
+          {/* Legal Notice */}
+          <LegalNotice />
 
           {/* Upload Section */}
           <Card className="mb-8">
@@ -112,6 +131,8 @@ export default function GovernancePage() {
           </div>
         </div>
       </main>
+      
+      <Footer />
     </div>
   );
 }

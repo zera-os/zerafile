@@ -1,17 +1,25 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Upload, FileText, Copy, ExternalLink, Coins, Image, Code } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { UploadZone } from '../../components/upload-zone';
 import { JsonEditor } from '../../components/json-editor';
+import { Footer } from '../../components/footer';
+import { LegalNotice } from '../../components/legal-notice';
 import { useState } from 'react';
 
 export default function TokensPage() {
+  const router = useRouter();
   const [contractId, setContractId] = useState('');
   const [contractIdError, setContractIdError] = useState('');
+
+  const handleLogoClick = () => {
+    router.replace('/governance');
+  };
 
   const validateContractId = (id: string): boolean => {
     // Pattern: $[letters]+[4n] or $sol-[letters]+[6n]
@@ -20,11 +28,13 @@ export default function TokensPage() {
   };
 
   const handleContractIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+    const value = e.currentTarget.value;
     setContractId(value);
     
     if (value && !validateContractId(value)) {
       setContractIdError('Contract ID must be in format: $ZRA+0000 or $sol-SOL+000000');
+    } else if (value && validateContractId(value)) {
+      setContractIdError('');
     } else {
       setContractIdError('');
     }
@@ -35,9 +45,14 @@ export default function TokensPage() {
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-8">
-              <h1 className="text-2xl font-bold text-primary">zerafile</h1>
-              <nav className="flex space-x-6">
+                 <div className="flex items-center space-x-8">
+                   <button 
+                     onClick={handleLogoClick}
+                     className="text-2xl font-bold text-primary hover:text-primary/80 transition-colors cursor-pointer bg-transparent border-none p-0"
+                   >
+                     zerafile
+                   </button>
+              <nav className="flex items-center space-x-6">
                 <Link href="/governance" className="text-muted-foreground hover:text-foreground">
                   Governance
                 </Link>
@@ -54,7 +69,7 @@ export default function TokensPage() {
       <main className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
           {/* Hero Section */}
-          <div className="text-center mb-12">
+          <div className="text-center mb-6">
             <div className="relative inline-block mb-8">
               <div className="absolute inset-0 gradient-bg organic-shape opacity-20 blur-3xl"></div>
               <div className="relative gradient-bg organic-shape p-10">
@@ -67,6 +82,9 @@ export default function TokensPage() {
               </div>
             </div>
           </div>
+
+          {/* Legal Notice */}
+          <LegalNotice />
 
           {/* Contract ID Input */}
           <Card className="mb-8">
@@ -112,7 +130,7 @@ export default function TokensPage() {
               <UploadZone 
                 pathHint="tokens" 
                 contractId={contractId}
-                disabled={!contractId}
+                disabled={!contractId || !!contractIdError}
               />
             </CardContent>
           </Card>
@@ -131,7 +149,7 @@ export default function TokensPage() {
             <CardContent>
               <JsonEditor 
                 contractId={contractId}
-                disabled={!contractId}
+                disabled={!contractId || !!contractIdError}
               />
             </CardContent>
           </Card>
@@ -192,6 +210,8 @@ export default function TokensPage() {
           </div>
         </div>
       </main>
+      
+      <Footer />
     </div>
   );
 }

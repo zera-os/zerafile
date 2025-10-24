@@ -1,7 +1,8 @@
 import { FastifyInstance } from 'fastify';
-import { validateUriJson } from '@zerafile/shared';
+import { validateUriJson, generateFileId } from '@zerafile/shared';
 import { putObject } from '../lib/s3';
 import { config } from '../config';
+import { rateLimiter, formatBytes, formatTimeUntilReset } from '../lib/rate-limiter';
 
 const uriSchema = {
   body: {
@@ -18,12 +19,6 @@ export async function uriRoutes(fastify: FastifyInstance) {
   // POST /v1/uri
   fastify.post('/v1/uri', {
     schema: uriSchema,
-    config: {
-      rateLimit: {
-        max: 10,
-        timeWindow: '1 minute',
-      },
-    },
   }, async (request, reply) => {
     const { contractId, json } = request.body as { contractId: string; json: unknown };
 
@@ -31,11 +26,39 @@ export async function uriRoutes(fastify: FastifyInstance) {
       // Validate JSON schema
       const validatedJson = validateUriJson(json);
       
-      // Encode contractId for safe storage
-      const encodedContractId = encodeURIComponent(contractId);
-      const key = `token/${encodedContractId}/uri.json`;
+      // Calculate JSON size
+      const jsonSize = new Blob([JSON.stringify(validatedJson, null, 2)]).size;
       
-      // Store JSON with proper headers
+      // Check file count rate limit
+      const fileLimitCheck = rateLimiter.checkFileLimit(request);
+      if (!fileLimitCheck.allowed) {
+        return reply.code(429).send({
+          error: 'Rate limit exceeded',
+          message: `File upload limit exceeded. ${fileLimitCheck.remaining} files remaining. Reset in ${formatTimeUntilReset(fileLimitCheck.resetTime)}`,
+          limitType: 'files',
+          remaining: fileLimitCheck.remaining,
+          resetTime: fileLimitCheck.resetTime
+        });
+      }
+      
+      // Check data volume rate limit
+      const dataLimitCheck = rateLimiter.checkDataLimit(request, jsonSize);
+      if (!dataLimitCheck.allowed) {
+        return reply.code(429).send({
+          error: 'Rate limit exceeded',
+          message: `Data upload limit exceeded. ${formatBytes(dataLimitCheck.remaining)} remaining. Reset in ${formatTimeUntilReset(dataLimitCheck.resetTime)}`,
+          limitType: 'data',
+          remaining: dataLimitCheck.remaining,
+          resetTime: dataLimitCheck.resetTime
+        });
+      }
+      
+      // Use contractId directly for storage and add random suffix
+      const randomSuffix = generateFileId();
+      const key = `token/${contractId}/uri-${randomSuffix}.json`;
+      
+      // Record the upload for rate limiting
+      rateLimiter.recordUpload(request, jsonSize);
       await putObject(
         key,
         JSON.stringify(validatedJson, null, 2),
@@ -43,9 +66,9 @@ export async function uriRoutes(fastify: FastifyInstance) {
         'public, max-age=31536000, immutable'
       );
 
-      const cdnUrl = `${config.CDN_BASE_URL}/token/${encodedContractId}/uri.json`;
+      const cdnUrl = `${config.CDN_BASE_URL}/token/${contractId}/uri-${randomSuffix}.json`;
 
-      return { cdnUrl };
+      return { url: cdnUrl };
     } catch (error) {
       if (error instanceof Error && error.name === 'ZodError') {
         return reply.code(400).send({ 

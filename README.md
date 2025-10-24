@@ -63,7 +63,6 @@ SPACES_SECRET=your_spaces_secret_key
 
 # CDN and App URLs
 CDN_BASE_URL=https://cdn.zerafile.io
-APP_PUBLIC_BASE=https://zerafile.io
 
 # Server Configuration
 PORT=8080
