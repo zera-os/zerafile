@@ -272,14 +272,20 @@ else
         # Try multiple methods to get resolved IP
         local resolved_ip=""
         
-        # Method 1: Try dig
+        # Method 1: Try dig with specific DNS server
         if command -v dig &> /dev/null; then
-            resolved_ip=$(dig +short $domain | tail -n1)
+            resolved_ip=$(dig @8.8.8.8 +short $domain | tail -n1)
+            # Filter out DNS server responses
+            if [[ "$resolved_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                # Valid IP format
+            else
+                resolved_ip=""
+            fi
         fi
         
         # Method 2: Try nslookup if dig fails
         if [ -z "$resolved_ip" ] && command -v nslookup &> /dev/null; then
-            resolved_ip=$(nslookup $domain | grep "Address:" | tail -n1 | awk '{print $2}')
+            resolved_ip=$(nslookup $domain 8.8.8.8 | grep "Address:" | tail -n1 | awk '{print $2}')
         fi
         
         # Method 3: Try getent if available
