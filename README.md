@@ -1,15 +1,17 @@
 # Zerafile
 
-A production-ready file hosting and URI metadata service built with Next.js, Fastify, and DigitalOcean Spaces.
+This project has a vibecoded base to support zerafile.io. It is a super quick few hour implementation based on community discussion for a simple, ZERA focused file upload service leveraging a simple interface and s3-compatible CDN.
+
+Nothing in this service is security sensitive, and not a lot of care was taken into the security aspects simple because everything on this platform is intended to be entirely public.
 
 ## Features
 
 - **File Upload**: Upload PDF documents, images (PNG, JPG, JPEG, GIF, WebP), and office files (XLSX, DOCX) up to 5MB
-- **Governance Section**: Upload governance documents and proposals
-- **Token Section**: Upload token assets and create URI metadata
+- **Governance Section**: Upload governance documents and proposals with random file IDs
+- **Token Section**: Upload token assets and create URI metadata for contract IDs
 - **Direct CDN Access**: Files served via DigitalOcean Spaces CDN for fast, reliable access
-- **URI JSON Builder**: Create and publish metadata for contracts and tokens
-- **Rate Limiting**: Built-in rate limiting for uploads and API calls
+- **URI JSON Builder**: Create and publish metadata for token contracts
+- **Custom Rate Limiting**: Server-side rate limiting (10 files/30min, 20MB/10min) with client-side enforcement
 - **Dark Theme UI**: Modern dark theme inspired by zera.net design
 - **Monorepo Architecture**: Shared utilities across web and API services
 
@@ -140,7 +142,8 @@ Initialize file upload and get presigned URL.
 ```json
 {
   "pathHint": "governance",
-  "ext": "pdf"
+  "ext": "pdf",
+  "filename": "document.pdf"
 }
 ```
 
@@ -149,7 +152,6 @@ Initialize file upload and get presigned URL.
 {
   "key": "governance/abc123.pdf",
   "presignedUrl": "https://nyc3.digitaloceanspaces.com/...",
-  "prettyUrl": "https://zerafile.io/governance/abc123.pdf",
   "cdnUrl": "https://cdn.zerafile.io/governance/abc123.pdf",
   "maxSizeBytes": 5000000
 }
@@ -169,7 +171,6 @@ Complete file upload after direct upload to presigned URL.
 ```json
 {
   "ok": true,
-  "url": "https://zerafile.io/governance/abc123.pdf",
   "cdnUrl": "https://cdn.zerafile.io/governance/abc123.pdf"
 }
 ```
@@ -182,18 +183,11 @@ Publish URI JSON metadata.
 **Request:**
 ```json
 {
-  "contractId": "$CONTRACT123",
+  "contractId": "$ZRA+0000",
   "json": {
-    "name": "My Contract",
-    "description": "Contract description",
-    "image": "https://example.com/image.png",
-    "external_url": "https://example.com",
-    "attributes": [
-      {
-        "trait_type": "Type",
-        "value": "Governance"
-      }
-    ]
+    "image": "https://cdn.zerafile.io/token/$ZRA+0000/icon.png",
+    "url": "https://example.com",
+    "description": "Token description"
   }
 }
 ```
@@ -201,7 +195,44 @@ Publish URI JSON metadata.
 **Response:**
 ```json
 {
-  "url": "https://zerafile.io/uri/%24CONTRACT123"
+  "url": "https://cdn.zerafile.io/token/$ZRA+0000/uri-abc123.json"
+}
+```
+
+#### GET /v1/uploads/rate-limit-status
+Check current rate limit status for the requesting IP.
+
+**Response:**
+```json
+{
+  "files": {
+    "used": 2,
+    "limit": 10,
+    "remaining": 8,
+    "resetTime": 1640995200000,
+    "resetIn": "25m 30s"
+  },
+  "data": {
+    "used": 5242880,
+    "limit": 20971520,
+    "remaining": 15728640,
+    "resetTime": 1640995200000,
+    "resetIn": "8m 15s",
+    "usedFormatted": "5.0 MB",
+    "limitFormatted": "20.0 MB",
+    "remainingFormatted": "15.0 MB"
+  }
+}
+```
+
+#### GET /health
+Health check endpoint.
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-01-24T10:30:00.000Z"
 }
 ```
 
@@ -209,31 +240,53 @@ Publish URI JSON metadata.
 
 ### Direct CDN Access
 Files are accessible via CDN URLs:
-- `https://cdn.zerafile.io/governance/{id}.{ext}`
-- `https://cdn.zerafile.io/token/{id}.{ext}`
-- `https://cdn.zerafile.io/token/{contractId}/uri.json`
-- `https://cdn.zerafile.io/token/{contractId}/icon.png` (and other files)
+- `https://cdn.zerafile.io/governance/{randomId}.{ext}` - Governance files
+- `https://cdn.zerafile.io/token/{contractId}/{filename}` - Token assets
+- `https://cdn.zerafile.io/token/{contractId}/uri-{randomSuffix}.json` - URI metadata
 
-### Pretty URLs (Redirects)
-App routes redirect to CDN:
-- `https://zerafile.io/governance/{id}.{ext}` → CDN URL
-- `https://zerafile.io/token/{id}.{ext}` → CDN URL
-- `https://zerafile.io/token/{contractId}/uri.json` → CDN URL
+### Token Uploads
+For token assets, a valid contract ID is required:
+- Contract ID format: `$ZRA+0000` or `$sol-SOL+000000`
+- Files are stored under: `token/{contractId}/{filename}`
+- Multiple files can be uploaded per contract
+- All files are publicly accessible via CDN
 
 ## Rate Limits
 
-- **File Uploads**: 20 requests/minute per IP
-- **URI Publishing**: 10 requests/minute per IP  
-- **File Access**: 2000 requests/minute per IP
-- **URI Access**: 600 requests/minute per IP
+- **File Count**: 10 files per 30 minutes per IP
+- **Data Volume**: 20MB per 10 minutes per IP
+- **Client-Side Enforcement**: Rate limits enforced both server-side and client-side
+- **Status Endpoint**: `GET /v1/uploads/rate-limit-status` to check current limits
 
 ## File Constraints
 
-- **Size Limit**: 5MB maximum
+- **Size Limit**: 5MB maximum per file
 - **Allowed Types**: PDF documents, images (PNG, JPG, JPEG, GIF, WebP), office files (XLSX, DOCX)
 - **MIME Validation**: Server-side validation after upload
 - **Cache Headers**: 1 year immutable cache for files and JSON
 - **Download Required**: XLSX and DOCX files require download (no preview)
+- **Public Access**: All uploaded files are publicly accessible via CDN
+- **Random Suffixes**: Governance files get random IDs, URI JSON gets random suffixes
+
+## User Interface
+
+### Governance Section
+- Upload governance documents and proposals
+- Random file ID generation for each upload
+- Direct CDN access to uploaded files
+- Support for PDF, images, and office documents
+
+### Tokens Section
+- Contract ID input with validation (`$ZRA+0000` or `$sol-SOL+000000` format)
+- Multiple file uploads per contract
+- URI JSON editor with import/export functionality
+- Real-time upload progress and file size display
+- Copy-to-clipboard functionality for CDN URLs
+
+### Legal Pages
+- Terms of Service and Privacy Policy
+- Cross-referenced legal documents
+- Swiss law and binding arbitration clauses
 
 ## Development Scripts
 
@@ -277,11 +330,15 @@ pnpm type-check         # Type check all packages
 - `src/routes/uri.ts` - URI JSON endpoints
 
 ### Web Application (`apps/web`)
-- `src/app/page.tsx` - Home page (redirects to /files)
-- `src/app/files/page.tsx` - File upload interface
-- `src/app/uri/page.tsx` - URI JSON builder
-- `src/app/api/governance/[...path]/route.ts` - File redirects
-- `src/app/api/uri/[contractId]/route.ts` - URI redirects
+- `src/app/page.tsx` - Home page (redirects to /governance)
+- `src/app/governance/page.tsx` - Governance file upload interface
+- `src/app/tokens/page.tsx` - Token assets and URI metadata interface
+- `src/app/terms/page.tsx` - Terms of Service page
+- `src/app/privacy/page.tsx` - Privacy Policy page
+- `src/app/api/governance/[...path]/route.ts` - Governance file redirects
+- `src/app/api/token/[...path]/route.ts` - Token file redirects
+- `src/app/api/tokens/[...path]/route.ts` - Token assets redirects
+- `src/app/api/uri/[contractId]/route.ts` - URI metadata redirects
 - `src/components/` - Reusable UI components
 
 ## Contributing
