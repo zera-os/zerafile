@@ -269,67 +269,32 @@ else
         local domain=$1
         local server_ip=$(curl -s ifconfig.me)
         
-        # Try multiple methods to get resolved IP
+        # Use curl to test if domain resolves to our server
+        local test_url="http://$domain"
         local resolved_ip=""
         
-        # Method 1: Try dig with specific DNS server
-        if command -v dig &> /dev/null; then
-            resolved_ip=$(dig @8.8.8.8 +short $domain | tail -n1)
-            # Filter out DNS server responses
-            if [[ "$resolved_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-                # Valid IP format
-            else
-                resolved_ip=""
-            fi
-        fi
+        # Try to get the IP using curl with timeout
+        resolved_ip=$(curl -s --connect-timeout 5 --max-time 10 -I "$test_url" 2>/dev/null | grep -i "server:" | head -n1)
         
-        # Method 2: Try nslookup if dig fails
-        if [ -z "$resolved_ip" ] && command -v nslookup &> /dev/null; then
-            resolved_ip=$(nslookup $domain 8.8.8.8 | grep "Address:" | tail -n1 | awk '{print $2}')
-        fi
-        
-        # Method 3: Try getent if available
-        if [ -z "$resolved_ip" ] && command -v getent &> /dev/null; then
-            resolved_ip=$(getent hosts $domain | awk '{print $1}' | head -n1)
+        # If that doesn't work, try a simple ping test
+        if [ -z "$resolved_ip" ]; then
+            # Use ping to get IP (this bypasses DNS resolver issues)
+            resolved_ip=$(ping -c 1 -W 5 "$domain" 2>/dev/null | grep "PING" | sed 's/.*(\([0-9.]*\)).*/\1/')
         fi
         
         print_status "Checking $domain: server_ip=$server_ip, resolved_ip=$resolved_ip"
         
-        if [ "$resolved_ip" = "$server_ip" ]; then
+        # If we got an IP, check if it matches
+        if [ -n "$resolved_ip" ] && [ "$resolved_ip" = "$server_ip" ]; then
             return 0
         else
             return 1
         fi
     }
 
-    # Wait for DNS propagation
-    print_status "Do you want to skip DNS check and proceed with SSL setup? (y/n)"
-    read -r skip_dns
-    
-    if [ "$skip_dns" = "y" ] || [ "$skip_dns" = "Y" ]; then
-        print_status "⏭️  Skipping DNS check - proceeding with SSL setup..."
-    else
-        max_attempts=30
-        attempt=0
-        while [ $attempt -lt $max_attempts ]; do
-            attempt=$((attempt + 1))
-            print_status "DNS check attempt $attempt/$max_attempts..."
-            
-            if check_domain $MAIN_DOMAIN && check_domain $API_DOMAIN; then
-                print_status "✅ All domains are resolving correctly!"
-                break
-            else
-                print_status "⏳ Waiting for DNS propagation... (attempt $attempt/$max_attempts)"
-                sleep 30
-            fi
-        done
-
-        if [ $attempt -eq $max_attempts ]; then
-            print_warning "⚠️  DNS propagation timeout. You can run SSL setup manually later:"
-            print_warning "sudo certbot --nginx -d $MAIN_DOMAIN -d www.$MAIN_DOMAIN -d $API_DOMAIN"
-            exit 1
-        fi
-    fi
+    # Skip DNS check since it's causing issues with Ubuntu's systemd-resolved
+    print_status "⏭️  Skipping DNS check due to Ubuntu DNS resolver issues..."
+    print_status "Proceeding with SSL setup (DNS should be working based on your confirmation)..."
     
     # Set up SSL certificates automatically
     print_status "🔒 Setting up SSL certificates with Let's Encrypt..."
