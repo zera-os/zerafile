@@ -5,7 +5,7 @@ import { Upload, Code, Copy, Check, AlertCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { Textarea } from './ui/textarea';
-import { validateUriJson, DEFAULT_URI_JSON } from '@zerafile/shared';
+import { validateUriJsonLenient, DEFAULT_URI_JSON } from '@zerafile/shared';
 import { config } from '../lib/config';
 import { clientRateLimiter, formatBytes, formatTimeUntilReset } from '../lib/rate-limiter';
 
@@ -63,7 +63,7 @@ export function JsonEditor({ contractId, disabled = false }: JsonEditorProps) {
       const content = event.target?.result as string;
       try {
         const parsed = JSON.parse(content);
-        validateUriJson(parsed); // Validate the JSON
+        const validatedJson = validateUriJsonLenient(parsed); // Validate the JSON
         setJsonText(JSON.stringify(parsed, null, 2));
         setError(null);
         setImportSuccess(true);
@@ -88,7 +88,7 @@ export function JsonEditor({ contractId, disabled = false }: JsonEditorProps) {
     try {
       // Validate JSON
       const parsedJson = JSON.parse(jsonText);
-      const validatedJson = validateUriJson(parsedJson);
+      const validatedJson = validateUriJsonLenient(parsedJson);
       
       // Calculate JSON size
       const jsonSize = new Blob([JSON.stringify(validatedJson, null, 2)]).size;

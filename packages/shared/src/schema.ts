@@ -1,13 +1,17 @@
 import { z } from 'zod';
 
 /**
- * Schema for URI JSON metadata
+ * Schema for URI JSON metadata - more flexible validation
  */
 export const UriJsonSchema = z.object({
-  image: z.string().url(),
-  url: z.string().url(),
-  description: z.string().min(1).max(500),
-});
+  image: z.string().optional(),
+  url: z.string().optional(),
+  description: z.string().optional(),
+  name: z.string().optional(),
+  symbol: z.string().optional(),
+  decimals: z.number().optional(),
+  // Allow any additional properties
+}).passthrough();
 
 export type UriJson = z.infer<typeof UriJsonSchema>;
 
@@ -18,6 +22,9 @@ export const DEFAULT_URI_JSON: UriJson = {
   image: 'https://cdn.zerafile.io/token/CONTRACT_ID/image.png',
   url: 'https://example.com',
   description: 'Token description',
+  name: 'Token Name',
+  symbol: 'SYMBOL',
+  decimals: 18,
 };
 
 /**
@@ -25,6 +32,21 @@ export const DEFAULT_URI_JSON: UriJson = {
  */
 export function validateUriJson(data: unknown): UriJson {
   return UriJsonSchema.parse(data);
+}
+
+/**
+ * Validate URI JSON data with lenient parsing (no errors thrown)
+ */
+export function validateUriJsonLenient(data: unknown): Partial<UriJson> {
+  const result = UriJsonSchema.safeParse(data);
+  if (result.success) {
+    return result.data;
+  }
+  // Return partial data for failed validation
+  if (typeof data === 'object' && data !== null) {
+    return data as Partial<UriJson>;
+  }
+  return {};
 }
 
 /**
