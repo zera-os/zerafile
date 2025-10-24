@@ -4,11 +4,40 @@
 - DigitalOcean Droplet (Ubuntu 24.04 LTS recommended)
 - Domain: `zerafile.io` pointing to your droplet
 - DigitalOcean Spaces bucket for file storage
+- SSH access to your droplet
 
-## Step 1: Initial Server Setup
+## 🚀 Quick Start (Automated Deployment)
+
+### Option 1: Automated Script (Recommended)
+```bash
+# Download and run the automated deployment script
+wget https://raw.githubusercontent.com/zera-os/zerafile/main/deploy-ubuntu.sh
+chmod +x deploy-ubuntu.sh
+./deploy-ubuntu.sh
+```
+
+**What the automated script does:**
+- ✅ Installs all dependencies (Node.js, pnpm, PM2, Nginx, Certbot, Git, UFW)
+- ✅ Sets up application directory and clones repository
+- ✅ Installs dependencies and builds all applications
+- ✅ Configures PM2 for process management
+- ✅ Sets up Nginx reverse proxy configurations
+- ✅ Configures UFW firewall
+- ✅ Starts all services
+
+**What you still need to do manually:**
+- ❌ Create environment files (see Step 3 below)
+- ❌ Set up SSL certificates (see Step 4 below)
+- ❌ Configure DigitalOcean Spaces (see Step 5 below)
+
+---
+
+## 📋 Manual Deployment Steps
+
+### Step 1: Initial Server Setup
 
 ```bash
-# Update system
+# Update system packages
 sudo apt update && sudo apt upgrade -y
 
 # Install Node.js 20
@@ -21,7 +50,7 @@ npm install -g pnpm
 # Install PM2 for process management
 npm install -g pm2
 
-# Install Nginx
+# Install Nginx web server
 sudo apt install nginx -y
 
 # Install Certbot for SSL certificates
@@ -34,7 +63,7 @@ sudo apt install git -y
 sudo apt install ufw -y
 ```
 
-## Step 2: Clone and Setup Application
+### Step 2: Clone and Setup Application
 
 ```bash
 # Create application directory
@@ -52,18 +81,22 @@ pnpm install
 pnpm build
 ```
 
-## Step 3: Environment Configuration
+### Step 3: Environment Configuration ⚠️ **REQUIRED**
 
-### API Environment File
-Create `/var/www/zerafile/apps/api/.env`:
+#### API Environment File
+```bash
+# Create API environment file
+sudo nano /var/www/zerafile/apps/api/.env
+```
 
+**Content for `/var/www/zerafile/apps/api/.env`:**
 ```bash
 # DigitalOcean Spaces Configuration
 SPACES_ENDPOINT=https://nyc3.digitaloceanspaces.com
 SPACES_REGION=us-east-1
 SPACES_BUCKET=zerafile
-SPACES_KEY=your_spaces_access_key
-SPACES_SECRET=your_spaces_secret_key
+SPACES_KEY=your_actual_spaces_access_key_here
+SPACES_SECRET=your_actual_spaces_secret_key_here
 
 # CDN URL
 CDN_BASE_URL=https://cdn.zerafile.io
@@ -73,9 +106,13 @@ PORT=8080
 NODE_ENV=production
 ```
 
-### Web App Environment File
-Create `/var/www/zerafile/apps/web/.env.local`:
+#### Web App Environment File
+```bash
+# Create web app environment file
+sudo nano /var/www/zerafile/apps/web/.env.local
+```
 
+**Content for `/var/www/zerafile/apps/web/.env.local`:**
 ```bash
 # API Configuration
 NEXT_PUBLIC_API_BASE=https://api.zerafile.io
@@ -85,10 +122,30 @@ NEXT_PUBLIC_CDN_BASE=https://cdn.zerafile.io
 NODE_ENV=production
 ```
 
-## Step 4: PM2 Configuration
+#### Alternative: Copy from Templates
+```bash
+# Copy template files
+cp /var/www/zerafile/env-api-template.txt /var/www/zerafile/apps/api/.env
+cp /var/www/zerafile/env-web-template.txt /var/www/zerafile/apps/web/.env.local
 
-Create `/var/www/zerafile/ecosystem.config.js`:
+# Edit with your actual values
+sudo nano /var/www/zerafile/apps/api/.env
+sudo nano /var/www/zerafile/apps/web/.env.local
+```
 
+### Step 4: PM2 Configuration
+
+The `ecosystem.config.js` file should already exist in the repository root. If not, create it:
+
+```bash
+# Check if ecosystem.config.js exists
+ls -la /var/www/zerafile/ecosystem.config.js
+
+# If it doesn't exist, create it
+sudo nano /var/www/zerafile/ecosystem.config.js
+```
+
+**Content for `ecosystem.config.js`:**
 ```javascript
 module.exports = {
   apps: [
@@ -127,11 +184,29 @@ module.exports = {
 };
 ```
 
-## Step 5: Nginx Configuration
+```bash
+# Create PM2 log directory
+sudo mkdir -p /var/log/pm2
+sudo chown $USER:$USER /var/log/pm2
 
-### Main Site Configuration
-Create `/etc/nginx/sites-available/zerafile.io`:
+# Start applications with PM2
+pm2 start ecosystem.config.js
 
+# Save PM2 configuration
+pm2 save
+
+# Setup PM2 to start on boot
+pm2 startup
+```
+
+### Step 5: Nginx Configuration
+
+#### Main Site Configuration
+```bash
+sudo nano /etc/nginx/sites-available/zerafile.io
+```
+
+**Content:**
 ```nginx
 server {
     listen 80;
@@ -143,8 +218,6 @@ server {
     listen 443 ssl http2;
     server_name zerafile.io www.zerafile.io;
 
-    # SSL configuration will be added by Certbot
-    
     location / {
         proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
@@ -159,9 +232,12 @@ server {
 }
 ```
 
-### API Configuration
-Create `/etc/nginx/sites-available/api.zerafile.io`:
+#### API Configuration
+```bash
+sudo nano /etc/nginx/sites-available/api.zerafile.io
+```
 
+**Content:**
 ```nginx
 server {
     listen 80;
@@ -173,8 +249,6 @@ server {
     listen 443 ssl http2;
     server_name api.zerafile.io;
 
-    # SSL configuration will be added by Certbot
-    
     location / {
         proxy_pass http://localhost:8080;
         proxy_http_version 1.1;
@@ -189,9 +263,12 @@ server {
 }
 ```
 
-### CDN Configuration
-Create `/etc/nginx/sites-available/cdn.zerafile.io`:
+#### CDN Configuration
+```bash
+sudo nano /etc/nginx/sites-available/cdn.zerafile.io
+```
 
+**Content:**
 ```nginx
 server {
     listen 80;
@@ -203,8 +280,6 @@ server {
     listen 443 ssl http2;
     server_name cdn.zerafile.io;
 
-    # SSL configuration will be added by Certbot
-    
     location / {
         proxy_pass https://zerafile.nyc3.digitaloceanspaces.com;
         proxy_set_header Host zerafile.nyc3.digitaloceanspaces.com;
@@ -218,18 +293,17 @@ server {
 }
 ```
 
-## Step 6: Enable Nginx Sites
-
+#### Enable Nginx Sites
 ```bash
 # Enable sites
-sudo ln -s /etc/nginx/sites-available/zerafile.io /etc/nginx/sites-enabled/
-sudo ln -s /etc/nginx/sites-available/api.zerafile.io /etc/nginx/sites-enabled/
-sudo ln -s /etc/nginx/sites-available/cdn.zerafile.io /etc/nginx/sites-enabled/
+sudo ln -sf /etc/nginx/sites-available/zerafile.io /etc/nginx/sites-enabled/
+sudo ln -sf /etc/nginx/sites-available/api.zerafile.io /etc/nginx/sites-enabled/
+sudo ln -sf /etc/nginx/sites-available/cdn.zerafile.io /etc/nginx/sites-enabled/
 
 # Remove default site
 sudo rm -f /etc/nginx/sites-enabled/default
 
-# Test configuration
+# Test Nginx configuration
 sudo nginx -t
 
 # Restart Nginx
@@ -237,36 +311,17 @@ sudo systemctl restart nginx
 sudo systemctl enable nginx
 ```
 
-## Step 7: Start Applications
-
-```bash
-# Create log directory
-sudo mkdir -p /var/log/pm2
-sudo chown $USER:$USER /var/log/pm2
-
-# Start applications with PM2
-cd /var/www/zerafile
-pm2 start ecosystem.config.js
-
-# Save PM2 configuration
-pm2 save
-
-# Setup PM2 to start on boot
-pm2 startup
-# Follow the instructions provided by the command above
-```
-
-## Step 8: SSL Certificates
+### Step 6: SSL Certificates
 
 ```bash
 # Get SSL certificates for all domains
 sudo certbot --nginx -d zerafile.io -d www.zerafile.io -d api.zerafile.io -d cdn.zerafile.io
 
-# Test auto-renewal
+# Test certificate renewal
 sudo certbot renew --dry-run
 ```
 
-## Step 9: Firewall Configuration
+### Step 7: Firewall Configuration
 
 ```bash
 # Configure UFW firewall
@@ -274,43 +329,31 @@ sudo ufw allow ssh
 sudo ufw allow 'Nginx Full'
 sudo ufw --force enable
 
-# Check status
+# Check firewall status
 sudo ufw status
 ```
 
-## Step 10: DNS Configuration
+### Step 8: DigitalOcean Spaces Setup
 
-Configure your DNS records to point to your droplet:
-
-```
-A     zerafile.io        → YOUR_DROPLET_IP
-A     www.zerafile.io    → YOUR_DROPLET_IP
-A     api.zerafile.io    → YOUR_DROPLET_IP
-A     cdn.zerafile.io    → YOUR_DROPLET_IP
-```
-
-## Step 11: DigitalOcean Spaces Setup
-
-1. **Create Spaces Bucket**:
+1. **Create Spaces Bucket:**
    - Go to DigitalOcean Control Panel
    - Create a new Space named `zerafile`
-   - Set it to public
-   - Note the endpoint URL
+   - Choose region (recommend `nyc3`)
 
-2. **Configure CORS Policy**:
+2. **Set CORS Policy:**
 ```json
 [
   {
     "AllowedHeaders": ["*"],
-    "AllowedMethods": ["GET", "HEAD", "PUT", "POST"],
-    "AllowedOrigins": ["*"],
+    "AllowedMethods": ["GET", "PUT", "POST", "HEAD"],
+    "AllowedOrigins": ["https://zerafile.io", "https://api.zerafile.io"],
     "ExposeHeaders": ["ETag"],
     "MaxAgeSeconds": 3000
   }
 ]
 ```
 
-3. **Configure Bucket Policy**:
+3. **Set Bucket Policy (Make Files Public):**
 ```json
 {
   "Version": "2012-10-17",
@@ -326,28 +369,19 @@ A     cdn.zerafile.io    → YOUR_DROPLET_IP
 }
 ```
 
-## Monitoring and Maintenance
+---
 
-### Check Application Status
+## 🔄 Application Updates
+
+### Pull Latest Changes and Update
 ```bash
-# Check PM2 status
-pm2 status
-
-# View logs
-pm2 logs zerafile-api
-pm2 logs zerafile-web
-
-# Restart applications
-pm2 restart all
-```
-
-### Update Application
-```bash
-# Pull latest changes
+# Navigate to application directory
 cd /var/www/zerafile
+
+# Pull latest changes from repository
 git pull
 
-# Install dependencies
+# Install any new dependencies
 pnpm install
 
 # Rebuild all applications
@@ -357,35 +391,208 @@ pnpm build
 pm2 restart all
 ```
 
-### Useful Commands
+### Update Individual Services
+```bash
+# Update only API
+cd /var/www/zerafile/apps/api
+git pull
+pnpm install
+pnpm build
+pm2 restart zerafile-api
+
+# Update only Web app
+cd /var/www/zerafile/apps/web
+git pull
+pnpm install
+pnpm build
+pm2 restart zerafile-web
+```
+
+### Update Environment Variables
+```bash
+# Edit environment files
+sudo nano /var/www/zerafile/apps/api/.env
+sudo nano /var/www/zerafile/apps/web/.env.local
+
+# Restart services to pick up new environment variables
+pm2 restart all
+```
+
+---
+
+## 🛠️ Useful Commands
+
+### Application Management
+```bash
+# Check application status
+pm2 status
+
+# View logs
+pm2 logs zerafile-api
+pm2 logs zerafile-web
+pm2 logs --lines 100
+
+# Restart applications
+pm2 restart all
+pm2 restart zerafile-api
+pm2 restart zerafile-web
+
+# Stop applications
+pm2 stop all
+pm2 stop zerafile-api
+
+# Start applications
+pm2 start all
+pm2 start zerafile-api
+
+# Reload applications (zero-downtime)
+pm2 reload all
+```
+
+### System Management
 ```bash
 # Check Nginx status
 sudo systemctl status nginx
+sudo nginx -t
+sudo systemctl restart nginx
 
+# Check firewall status
+sudo ufw status
+
+# Check disk usage
+df -h
+du -sh /var/www/zerafile
+
+# Check memory usage
+free -h
+htop
+```
+
+### Logs and Debugging
+```bash
+# View PM2 logs
+pm2 logs --lines 50
+
+# View Nginx logs
+sudo tail -f /var/log/nginx/access.log
+sudo tail -f /var/log/nginx/error.log
+
+# View system logs
+sudo journalctl -u nginx -f
+sudo journalctl -u pm2-$USER -f
+```
+
+### Testing Endpoints
+```bash
+# Test API health
+curl https://api.zerafile.io/health
+
+# Test main site
+curl https://zerafile.io
+
+# Test CDN
+curl https://cdn.zerafile.io
+
+# Test with verbose output
+curl -v https://api.zerafile.io/health
+```
+
+---
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+#### Applications Not Starting
+```bash
 # Check PM2 status
 pm2 status
 
-# View Nginx logs
-sudo tail -f /var/log/nginx/error.log
+# Check logs for errors
+pm2 logs zerafile-api
+pm2 logs zerafile-web
 
-# Test API endpoint
-curl https://api.zerafile.io/v1/uploads/rate-limit-status
-
-# Check SSL certificate
-sudo certbot certificates
+# Check if ports are in use
+sudo netstat -tlnp | grep :3000
+sudo netstat -tlnp | grep :8080
 ```
 
-## Troubleshooting
+#### Nginx Issues
+```bash
+# Test Nginx configuration
+sudo nginx -t
 
-### Common Issues
-1. **Port conflicts**: Ensure ports 3000 and 8080 are available
-2. **Permission issues**: Check file ownership in `/var/www/zerafile`
-3. **SSL issues**: Verify domain DNS is pointing to droplet
-4. **API not accessible**: Check Nginx configuration and PM2 status
+# Check Nginx status
+sudo systemctl status nginx
 
-### Log Locations
-- PM2 logs: `/var/log/pm2/`
-- Nginx logs: `/var/log/nginx/`
-- Application logs: Check PM2 logs
+# Restart Nginx
+sudo systemctl restart nginx
+```
 
-This deployment setup provides a production-ready environment for ZERAfile with proper SSL, process management, and monitoring.
+#### SSL Certificate Issues
+```bash
+# Check certificate status
+sudo certbot certificates
+
+# Renew certificates
+sudo certbot renew
+
+# Test renewal
+sudo certbot renew --dry-run
+```
+
+#### Environment Variable Issues
+```bash
+# Check if environment files exist
+ls -la /var/www/zerafile/apps/api/.env
+ls -la /var/www/zerafile/apps/web/.env.local
+
+# Check file permissions
+ls -la /var/www/zerafile/apps/api/.env
+```
+
+### Performance Monitoring
+```bash
+# Monitor system resources
+htop
+iotop
+nethogs
+
+# Monitor PM2 processes
+pm2 monit
+
+# Check application performance
+curl -w "@curl-format.txt" -o /dev/null -s https://api.zerafile.io/health
+```
+
+---
+
+## 📊 Verification Checklist
+
+After deployment, verify everything is working:
+
+- [ ] **Main Site**: `https://zerafile.io` loads correctly
+- [ ] **API Health**: `https://api.zerafile.io/health` returns `{"status":"ok"}`
+- [ ] **CDN**: `https://cdn.zerafile.io` proxies to DigitalOcean Spaces
+- [ ] **SSL**: All sites have valid SSL certificates
+- [ ] **PM2**: Both applications are running (`pm2 status`)
+- [ ] **Nginx**: All sites are enabled and working
+- [ ] **Firewall**: UFW is active and configured
+- [ ] **Logs**: No critical errors in PM2 or Nginx logs
+
+---
+
+## 🆘 Support
+
+If you encounter issues:
+
+1. **Check Logs**: `pm2 logs` and `sudo journalctl -u nginx`
+2. **Verify Configuration**: `sudo nginx -t` and `pm2 status`
+3. **Test Endpoints**: Use `curl` commands above
+4. **Check Environment**: Ensure `.env` files are properly configured
+5. **Restart Services**: `pm2 restart all` and `sudo systemctl restart nginx`
+
+For additional help, check the repository issues or create a new one with:
+- Your Ubuntu version
+- Error logs
+- Steps to reproduce the issue
