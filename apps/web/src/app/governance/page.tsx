@@ -95,7 +95,7 @@ export default function GovernancePage() {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground mb-4">
-                  Support for various governance document formats and media types.
+                  Support for various formats and media types.
                 </p>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm">

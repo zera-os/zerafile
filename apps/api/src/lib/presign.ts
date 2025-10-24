@@ -12,7 +12,7 @@ export async function generatePresignedPutUrl(
     Bucket: config.SPACES_BUCKET,
     Key: key,
     ContentType: contentType,
-    ACL: 'public-read', // Ensure files are publicly accessible
+    ACL: 'public-read', // Restore ACL for public access
   });
 
   return await getSignedUrl(s3Client, command, { expiresIn });

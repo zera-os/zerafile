@@ -16,6 +16,12 @@ interface UploadResult {
   uploadedAt: Date;
 }
 
+interface UploadProgress {
+  filename: string;
+  progress: number;
+  stage: 'init' | 'upload' | 'complete';
+}
+
 interface UploadZoneProps {
   pathHint?: string;
   contractId?: string;
@@ -26,6 +32,7 @@ export function UploadZone({ pathHint = 'governance', contractId, disabled = fal
   const [isDragOver, setIsDragOver] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadResults, setUploadResults] = useState<UploadResult[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
@@ -62,12 +69,14 @@ export function UploadZone({ pathHint = 'governance', contractId, disabled = fal
     }
 
     setIsUploading(true);
+    setUploadProgress({ filename: file.name, progress: 0, stage: 'init' });
 
     try {
       console.log('Starting upload process...');
       
       // Step 1: Initialize upload
       console.log('Step 1: Initializing upload...');
+      setUploadProgress({ filename: file.name, progress: 10, stage: 'init' });
       const initResponse = await fetch(`${config.apiBase}/v1/uploads/init`, {
         method: 'POST',
         headers: {
@@ -75,6 +84,7 @@ export function UploadZone({ pathHint = 'governance', contractId, disabled = fal
         },
         body: JSON.stringify({
           ext,
+          filename: file.name,
           pathHint: contractId ? `${pathHint}/${contractId}` : pathHint,
         }),
       });
@@ -91,7 +101,7 @@ export function UploadZone({ pathHint = 'governance', contractId, disabled = fal
 
       // Step 2: Upload file to presigned URL
       console.log('Step 2: Uploading file to presigned URL...');
-      console.log('Presigned URL:', presignedUrl);
+      setUploadProgress({ filename: file.name, progress: 20, stage: 'upload' });
       
       const uploadResponse = await fetch(presignedUrl, {
         method: 'PUT',
@@ -112,6 +122,8 @@ export function UploadZone({ pathHint = 'governance', contractId, disabled = fal
 
       // Step 3: Complete upload
       console.log('Step 3: Completing upload...');
+      setUploadProgress({ filename: file.name, progress: 80, stage: 'complete' });
+      
       const completeResponse = await fetch(`${config.apiBase}/v1/uploads/complete`, {
         method: 'POST',
         headers: {
@@ -128,6 +140,7 @@ export function UploadZone({ pathHint = 'governance', contractId, disabled = fal
       }
 
       console.log('Upload completed successfully!');
+      setUploadProgress({ filename: file.name, progress: 100, stage: 'complete' });
       
       // Add to upload results
       const newResult: UploadResult = {
@@ -143,6 +156,7 @@ export function UploadZone({ pathHint = 'governance', contractId, disabled = fal
       setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setIsUploading(false);
+      setUploadProgress(null);
     }
   }, [contractId, pathHint]);
 
@@ -230,6 +244,38 @@ export function UploadZone({ pathHint = 'governance', contractId, disabled = fal
             <div className="flex items-center gap-2 text-red-500">
               <AlertCircle className="h-4 w-4" />
               <span>{error}</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Upload Progress */}
+      {uploadProgress && (
+        <Card className="border-blue-500/50 bg-blue-500/5">
+          <CardContent className="p-4">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-blue-500">
+                <Upload className="h-4 w-4" />
+                <span className="font-medium">Uploading {uploadProgress.filename}</span>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>
+                    {uploadProgress.stage === 'init' && 'Initializing...'}
+                    {uploadProgress.stage === 'upload' && 'Uploading file...'}
+                    {uploadProgress.stage === 'complete' && 'Finalizing...'}
+                  </span>
+                  <span>{uploadProgress.progress}%</span>
+                </div>
+                
+                <div className="w-full bg-muted rounded-full h-2">
+                  <div 
+                    className="bg-primary h-2 rounded-full transition-all duration-300 ease-out"
+                    style={{ width: `${uploadProgress.progress}%` }}
+                  />
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

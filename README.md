@@ -47,22 +47,7 @@ pnpm install
 
 1. Create a DigitalOcean Spaces bucket named `zerafile`
 2. Generate API keys with read/write permissions
-3. Configure CORS for your domains:
-
-```json
-[
-  {
-    "AllowedHeaders": ["*"],
-    "AllowedMethods": ["GET", "HEAD", "PUT"],
-    "AllowedOrigins": [
-      "https://zerafile.io",
-      "https://api.zerafile.io"
-    ],
-    "ExposeHeaders": ["ETag"],
-    "MaxAgeSeconds": 3000
-  }
-]
-```
+3. Configure CORS as needed.
 
 ### 3. Environment Configuration
 
@@ -70,8 +55,8 @@ pnpm install
 
 ```bash
 # DigitalOcean Spaces Configuration
-SPACES_ENDPOINT=https://nyc3.digitaloceanspaces.com
-SPACES_REGION=us-east-1
+SPACES_ENDPOINT=https://sfo3.digitaloceanspaces.com
+SPACES_REGION=sfo-3
 SPACES_BUCKET=zerafile
 SPACES_KEY=your_spaces_access_key
 SPACES_SECRET=your_spaces_secret_key

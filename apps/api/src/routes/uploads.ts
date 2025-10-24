@@ -11,6 +11,7 @@ const initUploadSchema = {
     properties: {
       pathHint: { type: 'string', default: 'governance' },
       ext: { type: 'string' },
+      filename: { type: 'string' },
     },
   },
 };
@@ -36,7 +37,7 @@ export async function uploadRoutes(fastify: FastifyInstance) {
       },
     },
   }, async (request, reply) => {
-    const { pathHint = 'governance', ext } = request.body as { pathHint?: string; ext: string };
+    const { pathHint = 'governance', ext, filename } = request.body as { pathHint?: string; ext: string; filename?: string };
 
     // Validate extension
     if (!isAllowedExt(ext)) {
@@ -47,9 +48,21 @@ export async function uploadRoutes(fastify: FastifyInstance) {
     }
 
     try {
-      // Generate unique ID and key
-      const id = generateFileId();
-      const key = `${pathHint}/${id}.${ext}`;
+      // Generate filename based on pathHint
+      let finalFilename: string;
+      let key: string;
+      
+      if (pathHint.startsWith('tokens/')) {
+        // For tokens, use original filename
+        finalFilename = filename || `${generateFileId()}.${ext}`;
+        // pathHint is "tokens/contractId", so key becomes "token/contractId/filename.ext"
+        key = `token/${pathHint.split('/')[1]}/${finalFilename}`;
+      } else {
+        // For governance, use original filename with unique suffix
+        const baseName = filename ? filename.replace(/\.[^/.]+$/, '') : generateFileId();
+        finalFilename = `${baseName}-${generateFileId()}.${ext}`;
+        key = `${pathHint}/${finalFilename}`;
+      }
       
       // Get MIME type
       const contentType = safeMimeByExt(ext);
@@ -57,28 +70,23 @@ export async function uploadRoutes(fastify: FastifyInstance) {
       // Generate presigned URL
       const presignedUrl = await generatePresignedPutUrl(key, contentType);
       
-      // Build URLs based on pathHint
-      let prettyUrl: string;
+      // Build CDN URL based on pathHint
       let cdnUrl: string;
       
       if (pathHint.startsWith('governance')) {
-        prettyUrl = `${config.APP_PUBLIC_BASE}/governance/${id}.${ext}`;
-        cdnUrl = `${config.CDN_BASE_URL}/governance/${id}.${ext}`;
-      } else if (pathHint.startsWith('tokens')) {
+        cdnUrl = `${config.CDN_BASE_URL}/governance/${finalFilename}`;
+      } else if (pathHint.startsWith('tokens/')) {
         // For tokens, extract contractId from pathHint
         const contractId = pathHint.split('/')[1];
-        prettyUrl = `${config.APP_PUBLIC_BASE}/token/${contractId}/${id}.${ext}`;
-        cdnUrl = `${config.CDN_BASE_URL}/token/${contractId}/${id}.${ext}`;
+        cdnUrl = `${config.CDN_BASE_URL}/token/${contractId}/${finalFilename}`;
       } else {
         // Fallback
-        prettyUrl = `${config.APP_PUBLIC_BASE}/${pathHint}/${id}.${ext}`;
-        cdnUrl = `${config.CDN_BASE_URL}/${pathHint}/${id}.${ext}`;
+        cdnUrl = `${config.CDN_BASE_URL}/${pathHint}/${finalFilename}`;
       }
 
       return {
         key,
         presignedUrl,
-        prettyUrl,
         cdnUrl,
         maxSizeBytes: 5_000_000,
       };
@@ -138,32 +146,26 @@ export async function uploadRoutes(fastify: FastifyInstance) {
         // Continue anyway - the presigned URL should have set the ACL
       }
 
-      // Extract ID from key for URL generation
+      // Extract filename from key for URL generation
       const keyParts = key.split('/');
       const filename = keyParts[keyParts.length - 1];
-      const [id, ext] = filename.split('.');
       const pathHint = keyParts[0];
       
-      let prettyUrl: string;
       let cdnUrl: string;
       
       if (pathHint === 'governance') {
-        prettyUrl = `${config.APP_PUBLIC_BASE}/governance/${id}.${ext}`;
-        cdnUrl = `${config.CDN_BASE_URL}/governance/${id}.${ext}`;
-      } else if (pathHint === 'tokens') {
+        cdnUrl = `${config.CDN_BASE_URL}/governance/${filename}`;
+      } else if (pathHint === 'token') {
         // For tokens, extract contractId from key
         const contractId = keyParts[1];
-        prettyUrl = `${config.APP_PUBLIC_BASE}/token/${contractId}/${id}.${ext}`;
-        cdnUrl = `${config.CDN_BASE_URL}/token/${contractId}/${id}.${ext}`;
+        cdnUrl = `${config.CDN_BASE_URL}/token/${contractId}/${filename}`;
       } else {
-        // Fallback
-        prettyUrl = `${config.APP_PUBLIC_BASE}/${pathHint}/${id}.${ext}`;
-        cdnUrl = `${config.CDN_BASE_URL}/${pathHint}/${id}.${ext}`;
+        // This shouldn't happen with current logic, but keep as fallback
+        cdnUrl = `${config.CDN_BASE_URL}/${pathHint}/${filename}`;
       }
 
       return {
         ok: true,
-        url: prettyUrl,
         cdnUrl,
       };
     } catch (error) {

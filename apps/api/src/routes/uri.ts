@@ -43,9 +43,9 @@ export async function uriRoutes(fastify: FastifyInstance) {
         'public, max-age=31536000, immutable'
       );
 
-      const url = `${config.APP_PUBLIC_BASE}/token/${encodedContractId}/uri.json`;
+      const cdnUrl = `${config.CDN_BASE_URL}/token/${encodedContractId}/uri.json`;
 
-      return { url };
+      return { cdnUrl };
     } catch (error) {
       if (error instanceof Error && error.name === 'ZodError') {
         return reply.code(400).send({ 
