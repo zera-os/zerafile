@@ -369,8 +369,16 @@ fi
 print_step "Step 12: Managing applications with PM2..."
 # Check if PM2 processes are already running
 if pm2 list | grep -q "zerafile-api\|zerafile-web"; then
-    print_status "🔄 PM2 processes already running - restarting with new code..."
-    pm2 restart all
+    print_status "🔄 PM2 processes already running - performing rolling restart..."
+    
+    # Rolling restart: API first, then web app
+    print_status "Restarting API service..."
+    pm2 restart zerafile-api --wait-ready --kill-timeout 5000
+    
+    print_status "Restarting Web service..."
+    pm2 restart zerafile-web --wait-ready --kill-timeout 5000
+    
+    print_status "✅ Rolling restart completed"
 else
     print_status "🆕 Starting applications with PM2..."
     pm2 start ecosystem.config.js

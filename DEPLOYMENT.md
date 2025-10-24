@@ -66,3 +66,57 @@ cp /var/www/zerafile/env-web-template.txt /var/www/zerafile/apps/web/.env.local
 sudo nano /var/www/zerafile/apps/api/.env
 sudo nano /var/www/zerafile/apps/web/.env.local
 ```
+
+## 🔄 Zero-Downtime Updates
+
+### Update Scripts Available
+
+**1. Zero-Downtime Update (Recommended):**
+```bash
+./update.sh
+```
+- ✅ Rolling restarts (services restart one at a time)
+- ✅ Background builds (parallel processing)
+- ✅ Graceful shutdowns (5-second kill timeout)
+- ✅ Health checks and verification
+- ✅ Typically < 2 seconds downtime per service
+
+**2. Critical/Fast Update:**
+```bash
+./update-critical.sh
+```
+- ⚡ Ultra-fast updates for critical fixes
+- ⚡ Parallel builds and installs
+- ⚡ Minimal delays between restarts
+- ⚡ Best for emergency patches
+
+**3. Full Deployment Update:**
+```bash
+./deploy-ubuntu.sh
+```
+- 🔧 Complete deployment with SSL handling
+- 🔧 Detects existing deployment automatically
+- 🔧 Handles SSL certificate renewal
+- 🔧 Skips already-configured steps
+
+### Zero-Downtime Features
+
+- **Rolling Restarts**: API restarts first, then web app
+- **Graceful Shutdowns**: 5-second kill timeout for clean restarts
+- **Health Checks**: Verifies services are ready before proceeding
+- **Background Processing**: Builds and installs run in parallel
+- **Process Management**: PM2 handles process lifecycle with zero-downtime settings
+
+### Monitoring Updates
+
+```bash
+# Check service status
+pm2 status
+
+# View logs during update
+pm2 logs zerafile-api
+pm2 logs zerafile-web
+
+# Monitor in real-time
+pm2 monit
+```
