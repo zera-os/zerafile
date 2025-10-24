@@ -158,9 +158,9 @@ export function JsonEditor({ contractId, disabled = false }: JsonEditorProps) {
       await (globalThis as any).navigator.clipboard.writeText(text);
       setCopied(id);
       setTimeout(() => setCopied(null), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
-    }
+        } catch (err) {
+          // Silently fail clipboard copy
+        }
   };
 
   return (

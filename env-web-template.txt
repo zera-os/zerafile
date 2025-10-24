@@ -1,0 +1,6 @@
+# API Configuration
+NEXT_PUBLIC_API_BASE=https://api.zerafile.io
+NEXT_PUBLIC_CDN_BASE=https://cdn.zerafile.io
+
+# Next.js Configuration
+NODE_ENV=production

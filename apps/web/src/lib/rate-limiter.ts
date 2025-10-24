@@ -23,7 +23,7 @@ class ClientRateLimiter {
         return JSON.parse(stored);
       }
     } catch (error) {
-      console.warn('Failed to load rate limit data from localStorage:', error);
+      // Silently fail to load rate limit data
     }
     return { files: [], data: [] };
   }
@@ -32,7 +32,7 @@ class ClientRateLimiter {
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(store));
     } catch (error) {
-      console.warn('Failed to save rate limit data to localStorage:', error);
+      // Silently fail to save rate limit data
     }
   }
 

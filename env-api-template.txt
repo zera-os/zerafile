@@ -1,0 +1,13 @@
+# DigitalOcean Spaces Configuration
+SPACES_ENDPOINT=https://nyc3.digitaloceanspaces.com
+SPACES_REGION=us-east-1
+SPACES_BUCKET=zerafile
+SPACES_KEY=your_spaces_access_key_here
+SPACES_SECRET=your_spaces_secret_key_here
+
+# CDN URL
+CDN_BASE_URL=https://cdn.zerafile.io
+
+# Server Configuration
+PORT=8080
+NODE_ENV=production
