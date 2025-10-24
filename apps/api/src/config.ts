@@ -11,7 +11,7 @@ const envSchema = z.object({
   SPACES_KEY: z.string().min(1),
   SPACES_SECRET: z.string().min(1),
   CDN_BASE_URL: z.string().url(),
-  PORT: z.string().transform(Number).default(8080),
+  PORT: z.string().transform(Number).default('8080'),
 });
 
 export const config = envSchema.parse(process.env);

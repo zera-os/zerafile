@@ -118,19 +118,8 @@ print_status "Installing dependencies..."
 pnpm install
 
 # Build applications
-print_status "Building shared package..."
-cd packages/shared
+print_status "Building all applications..."
 pnpm build
-
-print_status "Building API..."
-cd ../../apps/api
-pnpm build
-
-print_status "Building Web app..."
-cd ../web
-pnpm build
-
-cd /var/www/zerafile
 
 print_step "Step 5: Setting up PM2 configuration..."
 # Create log directory

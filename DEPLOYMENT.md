@@ -1,7 +1,7 @@
 # ZERAfile Ubuntu Deployment Guide
 
 ## Prerequisites
-- DigitalOcean Droplet (Ubuntu 22.04 LTS recommended)
+- DigitalOcean Droplet (Ubuntu 24.04 LTS recommended)
 - Domain: `zerafile.io` pointing to your droplet
 - DigitalOcean Spaces bucket for file storage
 
@@ -43,15 +43,13 @@ sudo chown $USER:$USER /var/www/zerafile
 
 # Clone your repository
 cd /var/www/zerafile
-git clone https://github.com/yourusername/zerafile.git .
+git clone https://github.com/zera-os/zerafile.git .
 
 # Install dependencies
 pnpm install
 
-# Build applications
-cd packages/shared && pnpm build
-cd ../../apps/api && pnpm build
-cd ../web && pnpm build
+# Build all applications (shared package builds first, then API and web)
+pnpm build
 ```
 
 ## Step 3: Environment Configuration
@@ -352,9 +350,8 @@ git pull
 # Install dependencies
 pnpm install
 
-# Rebuild applications
-cd apps/api && pnpm build
-cd ../web && pnpm build
+# Rebuild all applications
+pnpm build
 
 # Restart PM2 processes
 pm2 restart all

@@ -158,7 +158,7 @@ export async function uploadRoutes(fastify: FastifyInstance) {
       try {
         await putObjectAcl(key, 'public-read');
       } catch (aclError) {
-        fastify.log.warn(`Failed to set ACL for ${key}:`, aclError);
+        fastify.log.warn(`Failed to set ACL for ${key}: ${aclError}`);
         // Continue anyway - the presigned URL should have set the ACL
       }
 

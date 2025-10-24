@@ -1,4 +1,4 @@
-import { S3Client } from '@aws-sdk/client-s3';
+import { S3Client, ObjectCannedACL } from '@aws-sdk/client-s3';
 import { config } from '../config';
 
 export const s3Client = new S3Client({
@@ -38,7 +38,7 @@ export async function putObject(key: string, body: string | Buffer, contentType:
   }));
 }
 
-export async function putObjectAcl(key: string, acl: string = 'public-read') {
+export async function putObjectAcl(key: string, acl: ObjectCannedACL = 'public-read') {
   const { PutObjectAclCommand } = await import('@aws-sdk/client-s3');
   return await s3Client.send(new PutObjectAclCommand({
     Bucket: config.SPACES_BUCKET,

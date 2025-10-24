@@ -2,8 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Upload, FileText, Copy, ExternalLink, Coins, Image, Code } from 'lucide-react';
-import { Button } from '../../components/ui/button';
+import { FileText, Copy, ExternalLink, Coins, Image, Code } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { UploadZone } from '../../components/upload-zone';

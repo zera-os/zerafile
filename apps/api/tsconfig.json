@@ -5,8 +5,16 @@
     "rootDir": "src",
     "module": "CommonJS",
     "target": "ES2022",
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "noEmit": false,
+    "declaration": true,
+    "composite": true
   },
   "include": ["src/**/*"],
-  "exclude": ["dist", "node_modules"]
+  "exclude": ["dist", "node_modules"],
+  "references": [
+    {
+      "path": "../../packages/shared"
+    }
+  ]
 }

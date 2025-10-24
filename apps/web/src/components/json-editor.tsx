@@ -1,12 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Upload, Code, Copy, Check, AlertCircle, ExternalLink } from 'lucide-react';
+import { Upload, Code, Copy, Check, AlertCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
-import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
-import { validateUriJson, DEFAULT_URI_JSON, type UriJson } from '@zerafile/shared';
+import { validateUriJson, DEFAULT_URI_JSON } from '@zerafile/shared';
 import { config } from '../lib/config';
 import { clientRateLimiter, formatBytes, formatTimeUntilReset } from '../lib/rate-limiter';
 
@@ -43,8 +42,6 @@ export function JsonEditor({ contractId, disabled = false }: JsonEditorProps) {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
   }
-
-  const encodedContractId = contractId ? encodeURIComponent(contractId) : '';
 
   const handleJsonChange = (value: string) => {
     setJsonText(value);
