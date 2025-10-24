@@ -2,8 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Shield, Mail, Eye } from 'lucide-react';
-import { Button } from '../../components/ui/button';
+import { Shield, Mail } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Footer } from '../../components/footer';
 

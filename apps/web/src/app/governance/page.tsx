@@ -2,8 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Upload, FileText, Copy, ExternalLink, Shield, Users } from 'lucide-react';
-import { Button } from '../../components/ui/button';
+import { FileText, Copy, ExternalLink, Shield, Users } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { UploadZone } from '../../components/upload-zone';
 import { Footer } from '../../components/footer';
@@ -13,7 +12,6 @@ export default function GovernancePage() {
   const router = useRouter();
 
   const handleLogoClick = () => {
-    console.log('Logo clicked!');
     router.replace('/governance');
   };
   return (
