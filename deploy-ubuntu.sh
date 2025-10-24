@@ -45,6 +45,14 @@ else
     print_status "Node.js already installed: $(node --version)"
 fi
 
+# Verify npm is available
+if ! command -v npm &> /dev/null; then
+    print_error "npm not found after Node.js installation. Please check Node.js installation."
+    exit 1
+fi
+
+print_status "npm version: $(npm --version)"
+
 # Install pnpm if not installed
 if ! command -v pnpm &> /dev/null; then
     print_status "Installing pnpm..."
