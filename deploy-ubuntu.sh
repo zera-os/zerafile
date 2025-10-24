@@ -52,6 +52,14 @@ else
     print_status "pnpm already installed: $(pnpm --version)"
 fi
 
+# Install Turbo if not installed
+if ! command -v turbo &> /dev/null; then
+    print_status "Installing Turbo..."
+    npm install -g turbo
+else
+    print_status "Turbo already installed: $(turbo --version)"
+fi
+
 # Install PM2 if not installed
 if ! command -v pm2 &> /dev/null; then
     print_status "Installing PM2..."

@@ -17,7 +17,7 @@ chmod +x deploy-ubuntu.sh
 ```
 
 **What the automated script does:**
-- ✅ Installs all dependencies (Node.js, pnpm, PM2, Nginx, Certbot, Git, UFW)
+- ✅ Installs all dependencies (Node.js, pnpm, Turbo, PM2, Nginx, Certbot, Git, UFW)
 - ✅ Installs dependencies and builds all applications
 - ✅ Configures PM2 for process management
 - ✅ Sets up Nginx reverse proxy configurations
