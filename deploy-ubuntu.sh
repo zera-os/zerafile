@@ -2,6 +2,7 @@
 
 # ZERAfile Ubuntu Deployment Script
 # Run this script on your DigitalOcean Ubuntu droplet
+# Supports both fresh deployments and updates
 
 set -e
 
@@ -103,6 +104,15 @@ fi
 print_step "Step 3: Setting up application directory..."
 sudo mkdir -p /var/www/zerafile
 sudo chown $USER:$USER /var/www/zerafile
+
+# Detect if this is an update or fresh deployment
+IS_UPDATE=false
+if [ -d "/var/www/zerafile/.git" ]; then
+    IS_UPDATE=true
+    print_status "🔄 Detected existing deployment - running update mode"
+else
+    print_status "🆕 Fresh deployment detected"
+fi
 
 # Check if repository is already cloned
 if [ ! -d "/var/www/zerafile/.git" ]; then
@@ -235,34 +245,162 @@ sudo ufw allow ssh
 sudo ufw allow 'Nginx Full'
 sudo ufw --force enable
 
-print_step "Step 9: Starting applications with PM2..."
-# Start applications with PM2
-pm2 start ecosystem.config.js
+print_step "Step 9: Setting up SSL certificates automatically..."
+
+# Check if SSL certificates already exist
+SSL_EXISTS=false
+if [ -f "/etc/letsencrypt/live/$MAIN_DOMAIN/fullchain.pem" ]; then
+    SSL_EXISTS=true
+    print_status "🔒 SSL certificates already exist - checking if they need renewal..."
+    sudo certbot renew --dry-run
+    if [ $? -eq 0 ]; then
+        print_status "✅ SSL certificates are valid and up to date"
+    else
+        print_status "🔄 Renewing SSL certificates..."
+        sudo certbot renew
+    fi
+else
+    print_status "🔒 No SSL certificates found - setting up new ones..."
+    print_status "Waiting for DNS to propagate (this may take a few minutes)..."
+    print_status "Checking if domains are accessible..."
+
+    # Function to check if domain resolves
+    check_domain() {
+        local domain=$1
+        local server_ip=$(curl -s ifconfig.me)
+        local resolved_ip=$(dig +short $domain | tail -n1)
+        
+        if [ "$resolved_ip" = "$server_ip" ]; then
+            return 0
+        else
+            return 1
+        fi
+    }
+
+    # Wait for DNS propagation
+    max_attempts=30
+    attempt=0
+    while [ $attempt -lt $max_attempts ]; do
+        attempt=$((attempt + 1))
+        print_status "DNS check attempt $attempt/$max_attempts..."
+        
+        if check_domain $MAIN_DOMAIN && check_domain $API_DOMAIN && check_domain $CDN_DOMAIN; then
+            print_status "✅ All domains are resolving correctly!"
+            break
+        else
+            print_status "⏳ Waiting for DNS propagation... (attempt $attempt/$max_attempts)"
+            sleep 30
+        fi
+    done
+
+    if [ $attempt -eq $max_attempts ]; then
+        print_warning "⚠️  DNS propagation timeout. You can run SSL setup manually later:"
+        print_warning "sudo certbot --nginx -d $MAIN_DOMAIN -d www.$MAIN_DOMAIN -d $API_DOMAIN -d $CDN_DOMAIN"
+    else
+        # Set up SSL certificates automatically
+        print_status "🔒 Setting up SSL certificates with Let's Encrypt..."
+        sudo certbot --nginx -d $MAIN_DOMAIN -d www.$MAIN_DOMAIN -d $API_DOMAIN -d $CDN_DOMAIN --non-interactive --agree-tos --email admin@$MAIN_DOMAIN --redirect
+        
+        if [ $? -eq 0 ]; then
+            print_status "✅ SSL certificates installed successfully!"
+        else
+            print_warning "⚠️  SSL certificate setup failed. You can try manually:"
+            print_warning "sudo certbot --nginx -d $MAIN_DOMAIN -d www.$MAIN_DOMAIN -d $API_DOMAIN -d $CDN_DOMAIN"
+        fi
+    fi
+fi
+
+print_step "Step 10: DigitalOcean Spaces Setup Guide..."
+if [ "$IS_UPDATE" = false ]; then
+    print_status "📦 You need to set up a DigitalOcean Spaces bucket:"
+    print_status ""
+    print_status "1. Go to: https://cloud.digitalocean.com/spaces"
+    print_status "2. Create a new Space named 'zerafile'"
+    print_status "3. Choose a region (e.g., NYC3)"
+    print_status "4. Set it to 'Public' access"
+    print_status "5. Note down your Space details for the environment files"
+    print_status ""
+    print_status "🔧 CORS Configuration (run this after creating the Space):"
+    print_status "   - Go to your Space settings"
+    print_status "   - Add CORS rule with origins: https://zerafile.io, https://api.zerafile.io"
+    print_status "   - Allow methods: GET, HEAD, POST, PUT"
+    print_status "   - Allow headers: *"
+    print_status ""
+    print_warning "Press ENTER when you've created your DigitalOcean Space..."
+
+    # Wait for user input
+    read -r
+else
+    print_status "🔄 Update mode - skipping DigitalOcean Spaces setup"
+fi
+
+print_step "Step 11: Setting up environment file templates..."
+# Copy environment templates
+print_status "Creating environment file templates..."
+cp env-api-template.txt /var/www/zerafile/apps/api/.env.example
+cp env-web-template.txt /var/www/zerafile/apps/web/.env.local.example
+
+# Check if environment files already exist
+if [ -f "/var/www/zerafile/apps/api/.env" ] && [ -f "/var/www/zerafile/apps/web/.env.local" ]; then
+    print_status "✅ Environment files already exist - skipping creation"
+    print_status "📝 If you need to update them:"
+    print_status "   nano /var/www/zerafile/apps/api/.env"
+    print_status "   nano /var/www/zerafile/apps/web/.env.local"
+else
+    print_status "Environment templates created:"
+    print_status "📝 API template: /var/www/zerafile/apps/api/.env.example"
+    print_status "📝 Web template: /var/www/zerafile/apps/web/.env.local.example"
+    print_status ""
+    print_status "Please create your environment files now:"
+    print_status ""
+    print_status "📝 API Environment File:"
+    print_status "   cp /var/www/zerafile/apps/api/.env.example /var/www/zerafile/apps/api/.env"
+    print_status "   nano /var/www/zerafile/apps/api/.env"
+    print_status ""
+    print_status "📝 Web Environment File:"
+    print_status "   cp /var/www/zerafile/apps/web/.env.local.example /var/www/zerafile/apps/web/.env.local"
+    print_status "   nano /var/www/zerafile/apps/web/.env.local"
+    print_status ""
+    print_warning "Press ENTER when you've created both environment files..."
+
+    # Wait for user input
+    read -r
+fi
+
+print_step "Step 12: Managing applications with PM2..."
+# Check if PM2 processes are already running
+if pm2 list | grep -q "zerafile-api\|zerafile-web"; then
+    print_status "🔄 PM2 processes already running - restarting with new code..."
+    pm2 restart all
+else
+    print_status "🆕 Starting applications with PM2..."
+    pm2 start ecosystem.config.js
+fi
 
 # Save PM2 configuration
 pm2 save
 
-# Setup PM2 startup
-print_status "Setting up PM2 startup..."
-pm2 startup
+# Setup PM2 startup (only if not already set up)
+if ! pm2 startup | grep -q "already"; then
+    print_status "Setting up PM2 startup..."
+    pm2 startup
+fi
 
-print_status "Deployment completed successfully!"
-echo ""
-print_warning "Next steps:"
-print_warning "1. Configure your environment variables:"
-print_warning "   - Edit /var/www/zerafile/apps/api/.env"
-print_warning "   - Edit /var/www/zerafile/apps/web/.env.local"
-print_warning ""
-print_warning "2. Set up SSL certificates:"
-print_warning "   sudo certbot --nginx -d $MAIN_DOMAIN -d www.$MAIN_DOMAIN -d $API_DOMAIN -d $CDN_DOMAIN"
-print_warning ""
-print_warning "3. Configure your DNS records to point to this server:"
-print_warning "   A     $MAIN_DOMAIN        → $(curl -s ifconfig.me)"
-print_warning "   A     www.$MAIN_DOMAIN    → $(curl -s ifconfig.me)"
-print_warning "   A     $API_DOMAIN         → $(curl -s ifconfig.me)"
-print_warning "   A     $CDN_DOMAIN         → $(curl -s ifconfig.me)"
-print_warning ""
-print_warning "4. Set up DigitalOcean Spaces bucket and configure CORS"
+if [ "$IS_UPDATE" = true ]; then
+    print_status "🎉 Update completed successfully!"
+    echo ""
+    print_status "✅ Your ZERAfile application has been updated!"
+    print_status "🌐 Main site: https://$MAIN_DOMAIN"
+    print_status "🔌 API: https://$API_DOMAIN"
+    print_status "📁 CDN: https://$CDN_DOMAIN"
+else
+    print_status "🎉 Deployment completed successfully!"
+    echo ""
+    print_status "✅ Your ZERAfile application is now running!"
+    print_status "🌐 Main site: https://$MAIN_DOMAIN"
+    print_status "🔌 API: https://$API_DOMAIN"
+    print_status "📁 CDN: https://$CDN_DOMAIN"
+fi
 
 echo ""
 print_status "Useful commands:"

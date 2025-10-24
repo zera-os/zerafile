@@ -1,6 +1,6 @@
-# API Configuration
-NEXT_PUBLIC_API_BASE=https://api.zerafile.io
-NEXT_PUBLIC_CDN_BASE=https://cdn.zerafile.io
+# ZERAfile Web App Environment Variables
+# Copy this to /var/www/zerafile/apps/web/.env.local
 
-# Next.js Configuration
-NODE_ENV=production
+# API Configuration
+NEXT_PUBLIC_API_URL=https://api.zerafile.io
+NEXT_PUBLIC_CDN_URL=https://cdn.zerafile.io

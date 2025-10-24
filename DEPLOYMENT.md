@@ -6,11 +6,11 @@
 - DigitalOcean Spaces bucket for file storage
 - SSH access to your droplet
 
-## 🚀 Quick Start (Automated Deployment)
+## 🚀 Quick Start (Fully Automated Deployment)
 
-### Option 1: Automated Script (Recommended)
+### Option 1: One-Command Deployment (Recommended)
 ```bash
-# Download and run the automated deployment script
+# Download and run the fully automated deployment script
 wget https://raw.githubusercontent.com/zera-os/zerafile/main/deploy-ubuntu.sh
 chmod +x deploy-ubuntu.sh
 ./deploy-ubuntu.sh
@@ -18,16 +18,41 @@ chmod +x deploy-ubuntu.sh
 
 **What the automated script does:**
 - ✅ Installs all dependencies (Node.js, pnpm, Turbo, PM2, Nginx, Certbot, Git, UFW)
+- ✅ Sets up application directory and **automatically clones repository**
 - ✅ Installs dependencies and builds all applications
 - ✅ Configures PM2 for process management
 - ✅ Sets up Nginx reverse proxy configurations
 - ✅ Configures UFW firewall
+- ✅ **Automatically waits for DNS propagation**
+- ✅ **Automatically sets up SSL certificates with Let's Encrypt**
+- ✅ **Guides you through DigitalOcean Spaces setup**
+- ✅ **Waits for you to create environment files**
 - ✅ Starts all services
 
-**What you still need to do manually:**
-- ❌ Create environment files (see Step 3 below)
-- ❌ Set up SSL certificates (see Step 4 below)
-- ❌ Configure DigitalOcean Spaces (see Step 5 below)
+**What you need to do manually:**
+- ❌ **Point DNS to your server** (A records for zerafile.io, api.zerafile.io, cdn.zerafile.io)
+- ❌ **Create DigitalOcean Spaces bucket** (guided by script)
+- ❌ **Create environment files** (guided by script)
+
+### 🔄 Updates and Maintenance
+
+**For Updates (when already deployed):**
+```bash
+# Option 1: Full update with SSL handling
+./deploy-ubuntu.sh
+
+# Option 2: Quick update (code only)
+chmod +x update.sh
+./update.sh
+```
+
+**What happens during updates:**
+- ✅ **Detects existing deployment** automatically
+- ✅ **Pulls latest code** from repository
+- ✅ **Rebuilds applications** with new code
+- ✅ **Handles SSL certificates** (renews if needed, installs if missing)
+- ✅ **Skips setup steps** that are already done
+- ✅ **Restarts services** with new code
 
 ---
 
