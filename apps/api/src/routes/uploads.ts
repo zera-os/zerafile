@@ -139,6 +139,8 @@ export async function uploadRoutes(fastify: FastifyInstance) {
 
       // Check MIME type
       const contentType = headResult.ContentType;
+      fastify.log.info(`File upload MIME type check: key=${key}, contentType=${contentType}`);
+      
       const allowedMimeTypes = [
         'application/pdf', 
         'image/png', 
@@ -147,10 +149,16 @@ export async function uploadRoutes(fastify: FastifyInstance) {
         'image/webp',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/json'
+        'application/json',
+        'text/json',
+        'text/plain' // Some JSON files might be detected as text/plain
       ];
       
-      if (!contentType || !allowedMimeTypes.includes(contentType)) {
+      // Additional check for JSON files - if extension is .json, allow it regardless of MIME type
+      const isJsonFile = key.toLowerCase().endsWith('.json');
+      
+      if (!contentType || (!allowedMimeTypes.includes(contentType) && !isJsonFile)) {
+        fastify.log.warn(`Invalid file type: key=${key}, contentType=${contentType}, isJsonFile=${isJsonFile}`);
         return reply.code(400).send({ error: 'Invalid file type' });
       }
 

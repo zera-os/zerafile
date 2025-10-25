@@ -101,7 +101,6 @@ export default function TokensPage() {
                   placeholder="Enter contract ID (e.g., $ZRA+0000, $sol-SOL+000000)"
                   value={contractId}
                   onChange={handleContractIdChange}
-                  className={contractIdError ? 'border-red-500' : ''}
                 />
                 {contractIdError && (
                   <p className="text-red-500 text-sm">{contractIdError}</p>

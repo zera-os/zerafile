@@ -123,7 +123,9 @@ export function UploadZone({ pathHint = 'governance', contractId, disabled = fal
         method: 'PUT',
         body: file,
         headers: {
-          'Content-Type': file.type,
+          'Content-Type': file.name.toLowerCase().endsWith('.json') 
+            ? 'application/json' 
+            : file.type,
         },
       });
 
