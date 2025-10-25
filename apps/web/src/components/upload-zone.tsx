@@ -263,7 +263,7 @@ export function UploadZone({ pathHint = 'governance', contractId, disabled = fal
                  }`}>
                    {disabled 
                      ? 'Please enter a valid Contract ID above to enable file uploads'
-                     : 'Supports multiple files: PDF documents, images (PNG, JPG, JPEG, GIF, WebP), and office files (XLSX, DOCX) up to 5MB each'
+                     : 'Supports multiple files: PDF documents, images (PNG, JPG, JPEG, GIF, WebP), office files (XLSX, DOCX), and JSON files up to 5MB each'
                    }
                  </p>
           </div>

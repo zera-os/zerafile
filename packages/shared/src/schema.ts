@@ -1,19 +1,12 @@
 import { z } from 'zod';
 
 /**
- * Schema for URI JSON metadata - more flexible validation
+ * Schema for URI JSON metadata - completely flexible validation
+ * Accepts any JSON object structure
  */
-export const UriJsonSchema = z.object({
-  image: z.string().optional(),
-  url: z.string().optional(),
-  description: z.string().optional(),
-  name: z.string().optional(),
-  symbol: z.string().optional(),
-  decimals: z.number().optional(),
-  // Allow any additional properties
-}).passthrough();
+export const UriJsonSchema = z.any();
 
-export type UriJson = z.infer<typeof UriJsonSchema>;
+export type UriJson = any;
 
 /**
  * Default URI JSON template
@@ -28,35 +21,22 @@ export const DEFAULT_URI_JSON: UriJson = {
 };
 
 /**
- * Validate URI JSON data
+ * Validate URI JSON data - accepts any JSON structure
  */
 export function validateUriJson(data: unknown): UriJson {
-  return UriJsonSchema.parse(data);
+  return data as UriJson;
 }
 
 /**
  * Validate URI JSON data with lenient parsing (no errors thrown)
  */
-export function validateUriJsonLenient(data: unknown): Partial<UriJson> {
-  const result = UriJsonSchema.safeParse(data);
-  if (result.success) {
-    return result.data;
-  }
-  // Return partial data for failed validation
-  if (typeof data === 'object' && data !== null) {
-    return data as Partial<UriJson>;
-  }
-  return {};
+export function validateUriJsonLenient(data: unknown): UriJson {
+  return data as UriJson;
 }
 
 /**
- * Check if data is valid URI JSON
+ * Check if data is valid URI JSON - accepts any JSON structure
  */
 export function isValidUriJson(data: unknown): data is UriJson {
-  try {
-    UriJsonSchema.parse(data);
-    return true;
-  } catch {
-    return false;
-  }
+  return typeof data === 'object' && data !== null;
 }

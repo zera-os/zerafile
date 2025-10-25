@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { validateUriJson, generateFileId } from '@zerafile/shared';
+import { validateUriJsonLenient, generateFileId } from '@zerafile/shared';
 import { putObject } from '../lib/s3';
 import { config } from '../config';
 import { rateLimiter, formatBytes, formatTimeUntilReset } from '../lib/rate-limiter';
@@ -23,8 +23,8 @@ export async function uriRoutes(fastify: FastifyInstance) {
     const { contractId, json } = request.body as { contractId: string; json: unknown };
 
     try {
-      // Validate JSON schema
-      const validatedJson = validateUriJson(json);
+      // Validate JSON schema (now accepts any structure)
+      const validatedJson = validateUriJsonLenient(json);
       
       // Calculate JSON size
       const jsonSize = new Blob([JSON.stringify(validatedJson, null, 2)]).size;

@@ -121,7 +121,7 @@ export default function TokensPage() {
                 Upload Token Files
               </CardTitle>
               <CardDescription>
-                Upload PDF documents, images (PNG, JPG, JPEG, GIF, WebP), and office files (XLSX, DOCX) up to 5MB for token assets and metadata
+                Upload PDF documents, images (PNG, JPG, JPEG, GIF, WebP), office files (XLSX, DOCX), and JSON files up to 5MB for token assets and metadata
               </CardDescription>
             </CardHeader>
             <CardContent>

@@ -38,7 +38,7 @@ export async function uploadRoutes(fastify: FastifyInstance) {
     if (!isAllowedExt(ext)) {
       return reply.code(400).send({
         error: 'Invalid file extension',
-        allowed: ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'xlsx', 'docx'],
+        allowed: ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'xlsx', 'docx', 'json'],
       });
     }
 
@@ -146,7 +146,8 @@ export async function uploadRoutes(fastify: FastifyInstance) {
         'image/gif', 
         'image/webp',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/json'
       ];
       
       if (!contentType || !allowedMimeTypes.includes(contentType)) {

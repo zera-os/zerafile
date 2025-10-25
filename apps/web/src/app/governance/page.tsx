@@ -68,7 +68,7 @@ export default function GovernancePage() {
                 Upload Governance Files
               </CardTitle>
               <CardDescription>
-                Upload PDF documents, images (PNG, JPG, JPEG, GIF, WebP), and office files (XLSX, DOCX) up to 5MB for governance proposals
+                Upload PDF documents, images (PNG, JPG, JPEG, GIF, WebP), office files (XLSX, DOCX), and JSON files up to 5MB for governance proposals
               </CardDescription>
             </CardHeader>
             <CardContent>
