@@ -315,8 +315,16 @@ else
     if [ $? -eq 0 ]; then
         print_status "✅ SSL certificates installed successfully!"
     else
-        print_warning "⚠️  SSL certificate setup failed. You can try manually:"
-        print_warning "sudo certbot --nginx -d $MAIN_DOMAIN -d www.$MAIN_DOMAIN -d $API_DOMAIN"
+        print_warning "⚠️  SSL certificate setup failed. Trying fallback method..."
+        print_status "🔧 Re-running Certbot with all domains..."
+        sudo certbot --nginx -d $MAIN_DOMAIN -d www.$MAIN_DOMAIN -d $API_DOMAIN --non-interactive --agree-tos --email admin@$MAIN_DOMAIN --redirect
+        
+        if [ $? -eq 0 ]; then
+            print_status "✅ SSL certificates installed successfully on retry!"
+        else
+            print_warning "⚠️  SSL certificate setup failed. You can try manually:"
+            print_warning "sudo certbot --nginx -d $MAIN_DOMAIN -d www.$MAIN_DOMAIN -d $API_DOMAIN"
+        fi
     fi
 fi
 
@@ -399,6 +407,86 @@ if ! pm2 startup | grep -q "already"; then
     pm2 startup
 fi
 
+print_step "Step 13: Verifying deployment..."
+print_status "🔍 Running comprehensive verification tests..."
+
+# Test 1: Check PM2 processes
+print_status "Testing PM2 processes..."
+if pm2 list | grep -q "zerafile-api.*online" && pm2 list | grep -q "zerafile-web.*online"; then
+    print_status "✅ PM2 processes are running"
+else
+    print_error "❌ PM2 processes are not running properly"
+    pm2 status
+fi
+
+# Test 2: Check Nginx status
+print_status "Testing Nginx..."
+if sudo systemctl is-active --quiet nginx; then
+    print_status "✅ Nginx is running"
+else
+    print_error "❌ Nginx is not running"
+fi
+
+# Test 3: Check SSL certificates
+print_status "Testing SSL certificates..."
+if sudo certbot certificates | grep -q "zerafile.io"; then
+    print_status "✅ SSL certificates are installed"
+else
+    print_error "❌ SSL certificates are missing"
+fi
+
+# Test 4: Test HTTP endpoints
+print_status "Testing HTTP endpoints..."
+if curl -s -o /dev/null -w "%{http_code}" http://$MAIN_DOMAIN | grep -q "200\|301\|302"; then
+    print_status "✅ Main site HTTP is responding"
+else
+    print_warning "⚠️  Main site HTTP not responding (might be redirecting to HTTPS)"
+fi
+
+# Test 5: Test HTTPS endpoints
+print_status "Testing HTTPS endpoints..."
+if curl -s -o /dev/null -w "%{http_code}" https://$MAIN_DOMAIN | grep -q "200"; then
+    print_status "✅ Main site HTTPS is responding"
+else
+    print_error "❌ Main site HTTPS not responding"
+fi
+
+if curl -s -o /dev/null -w "%{http_code}" https://$API_DOMAIN/health | grep -q "200"; then
+    print_status "✅ API HTTPS is responding"
+else
+    print_error "❌ API HTTPS not responding"
+fi
+
+# Test 6: Test API health endpoint
+print_status "Testing API health endpoint..."
+if curl -s https://$API_DOMAIN/health | grep -q '"status":"ok"'; then
+    print_status "✅ API health check passed"
+else
+    print_error "❌ API health check failed"
+fi
+
+# Test 7: Test file upload endpoint
+print_status "Testing file upload endpoint..."
+upload_test=$(curl -s -X POST https://$API_DOMAIN/v1/uploads/init \
+  -H "Content-Type: application/json" \
+  -d '{"ext":"pdf","filename":"test.pdf","pathHint":"governance"}' \
+  -w "%{http_code}" -o /dev/null)
+
+if [ "$upload_test" = "200" ]; then
+    print_status "✅ File upload endpoint is working"
+else
+    print_warning "⚠️  File upload endpoint returned HTTP $upload_test (might be rate limited)"
+fi
+
+# Test 8: Check firewall
+print_status "Testing firewall..."
+if sudo ufw status | grep -q "Nginx Full"; then
+    print_status "✅ Firewall allows Nginx traffic"
+else
+    print_warning "⚠️  Firewall might be blocking traffic"
+fi
+
+echo ""
 if [ "$IS_UPDATE" = true ]; then
     print_status "🎉 Update completed successfully!"
     echo ""
@@ -432,3 +520,9 @@ print_status "Test your sites (after DNS propagation):"
 echo "  curl http://$MAIN_DOMAIN"
 echo "  curl http://$API_DOMAIN/health"
 echo "  curl http://$CDN_DOMAIN"
+echo ""
+print_status "SSL Troubleshooting (if needed):"
+echo "  sudo certbot certificates     # Check SSL certificates"
+echo "  sudo certbot --nginx -d $MAIN_DOMAIN -d www.$MAIN_DOMAIN -d $API_DOMAIN  # Fix SSL"
+echo "  curl -I https://$MAIN_DOMAIN  # Test HTTPS"
+echo "  curl -I https://$API_DOMAIN/health  # Test API HTTPS"

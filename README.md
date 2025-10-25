@@ -71,14 +71,6 @@ PORT=8080
 NODE_ENV=development
 ```
 
-#### Web Environment (`apps/web/.env.local`)
-
-```bash
-# API Configuration
-NEXT_PUBLIC_API_BASE=https://api.zerafile.io
-NEXT_PUBLIC_CDN_BASE=https://cdn.zerafile.io
-```
-
 ### 4. Development
 
 ```bash
@@ -110,7 +102,6 @@ pnpm start
 ```bash
 # Copy environment files
 cp apps/api/.env.example apps/api/.env
-cp apps/web/.env.example apps/web/.env.local
 
 # Edit environment variables
 # Then start services

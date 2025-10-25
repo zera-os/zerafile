@@ -55,8 +55,6 @@ cp /var/www/zerafile/env-api-template.txt /var/www/zerafile/apps/api/.env
 sudo nano /var/www/zerafile/apps/api/.env
 ```
 
-**Note**: The web app no longer requires a `.env.local` file as URLs are hardcoded for production.
-
 ## 🔄 Zero-Downtime Updates
 
 ### Update Scripts Available
