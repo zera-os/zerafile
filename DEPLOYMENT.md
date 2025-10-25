@@ -40,32 +40,22 @@ PORT=8080
 NODE_ENV=production
 ```
 
-#### Web App Environment File
-```bash
-# Create web app environment file
-sudo nano /var/www/zerafile/apps/web/.env.local
-```
+#### Web App Configuration ✅ **AUTOMATED**
+The web app URLs are now **hardcoded for production** - no environment file needed!
 
-**Content for `/var/www/zerafile/apps/web/.env.local`:**
-```bash
-# API Configuration
-NEXT_PUBLIC_API_BASE=https://api.zerafile.io
-NEXT_PUBLIC_CDN_BASE=https://cdn.zerafile.io
-
-# Next.js Configuration
-NODE_ENV=production
-```
+- **Production**: Automatically uses `https://api.zerafile.io` and `https://cdn.zerafile.io`
+- **Development**: Uses environment variables or defaults to `localhost:8080`
 
 #### Alternative: Copy from Templates
 ```bash
-# Copy template files
+# Copy API template file
 cp /var/www/zerafile/env-api-template.txt /var/www/zerafile/apps/api/.env
-cp /var/www/zerafile/env-web-template.txt /var/www/zerafile/apps/web/.env.local
 
 # Edit with your actual values
 sudo nano /var/www/zerafile/apps/api/.env
-sudo nano /var/www/zerafile/apps/web/.env.local
 ```
+
+**Note**: The web app no longer requires a `.env.local` file as URLs are hardcoded for production.
 
 ## 🔄 Zero-Downtime Updates
 

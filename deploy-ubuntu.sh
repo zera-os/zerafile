@@ -344,34 +344,29 @@ else
     print_status "🔄 Update mode - skipping DigitalOcean Spaces setup"
 fi
 
-print_step "Step 11: Setting up environment file templates..."
-# Copy environment templates
-print_status "Creating environment file templates..."
+print_step "Step 11: Setting up API environment file..."
+# Copy environment template
+print_status "Creating API environment template..."
 cp env-api-template.txt /var/www/zerafile/apps/api/.env.example
-cp env-web-template.txt /var/www/zerafile/apps/web/.env.local.example
 
-# Check if environment files already exist
-if [ -f "/var/www/zerafile/apps/api/.env" ] && [ -f "/var/www/zerafile/apps/web/.env.local" ]; then
-    print_status "✅ Environment files already exist - skipping creation"
-    print_status "📝 If you need to update them:"
+# Check if API environment file already exists
+if [ -f "/var/www/zerafile/apps/api/.env" ]; then
+    print_status "✅ API environment file already exists - skipping creation"
+    print_status "📝 If you need to update it:"
     print_status "   nano /var/www/zerafile/apps/api/.env"
-    print_status "   nano /var/www/zerafile/apps/web/.env.local"
 else
-    print_status "Environment templates created:"
+    print_status "API environment template created:"
     print_status "📝 API template: /var/www/zerafile/apps/api/.env.example"
-    print_status "📝 Web template: /var/www/zerafile/apps/web/.env.local.example"
     print_status ""
-    print_status "Please create your environment files now:"
+    print_status "🔧 You need to create your API environment file with DigitalOcean Spaces credentials:"
     print_status ""
-    print_status "📝 API Environment File:"
+    print_status "📝 Create API Environment File:"
     print_status "   cp /var/www/zerafile/apps/api/.env.example /var/www/zerafile/apps/api/.env"
     print_status "   nano /var/www/zerafile/apps/api/.env"
     print_status ""
-    print_status "📝 Web Environment File:"
-    print_status "   cp /var/www/zerafile/apps/web/.env.local.example /var/www/zerafile/apps/web/.env.local"
-    print_status "   nano /var/www/zerafile/apps/web/.env.local"
+    print_status "✅ Web app URLs are automatically configured - no environment file needed!"
     print_status ""
-    print_warning "Press ENTER when you've created both environment files..."
+    print_warning "Press ENTER when you've created the API environment file..."
 
     # Wait for user input
     read -r
@@ -425,12 +420,12 @@ print_status "Useful commands:"
 echo "  pm2 status                    # Check application status"
 echo "  pm2 logs zerafile-api         # View API logs"
 echo "  pm2 logs zerafile-web         # View web app logs"
-echo "  pm2 restart all              # Restart all applications (after adding env files)"
+echo "  pm2 restart all              # Restart all applications (after adding API env file)"
 echo "  sudo nginx -t                 # Test Nginx configuration"
 echo "  sudo systemctl status nginx   # Check Nginx status"
 echo "  sudo ufw status               # Check firewall status"
 echo ""
-print_status "After adding environment files, restart services:"
+print_status "After adding API environment file, restart services:"
 echo "  pm2 restart all              # Restart applications with new env vars"
 echo ""
 print_status "Test your sites (after DNS propagation):"
