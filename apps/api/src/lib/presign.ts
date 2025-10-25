@@ -6,7 +6,7 @@ import { config } from '../config';
 export async function generatePresignedPutUrl(
   key: string,
   contentType: string,
-  expiresIn: number = 300 // 5 minutes
+  expiresIn: number = 5 // x seconds - short window to mitigate abuse
 ): Promise<string> {
   const command = new PutObjectCommand({
     Bucket: config.SPACES_BUCKET,
