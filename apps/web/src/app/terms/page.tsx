@@ -93,7 +93,22 @@ export default function TermsPage() {
               </div>
 
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold">5. Limitation of Liability</h2>
+                <h2 className="text-xl font-semibold">5. Data Retention Policy</h2>
+                <div className="space-y-2 text-muted-foreground">
+                  <p>
+                    We may periodically delete old data as necessary to keep our operational costs down. While we strive to prioritize keeping data that is intended to be long-term, such as active URI data and associated icons, nothing is absolutely guaranteed.
+                  </p>
+                  <p>
+                    We strive to provide support for projects leveraging the zerafile.io service, especially for URI and related core data (such as icons). However, users should not rely on indefinite data retention and should maintain their own backups of important content. Projects can feel free to contact us to make us aware of data that is important to them so we can take appropriate steps to preserve it with a higher degree of priority and support.
+                  </p>
+                  <p>
+                    <strong>No data retention is guaranteed.</strong> All uploaded content may be subject to permanent deletion at any time for operational, cost, or other business reasons without notice.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold">6. Limitation of Liability</h2>
                 <div className="space-y-2 text-muted-foreground">
                   <p>
                     <strong>ALL LIABILITY FOR UPLOADED CONTENT RESTS SOLELY WITH THE USER/UPLOADER.</strong>
@@ -108,7 +123,7 @@ export default function TermsPage() {
               </div>
 
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold">6. Dispute Resolution</h2>
+                <h2 className="text-xl font-semibold">7. Dispute Resolution</h2>
                 <div className="space-y-2 text-muted-foreground">
                   <p>
                     Any disputes arising from the use of this service shall be governed exclusively by Swiss law and resolved through binding arbitration only. You waive any right to a jury trial or to participate in a class action lawsuit.
@@ -117,7 +132,7 @@ export default function TermsPage() {
               </div>
 
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold">7. Contact Information</h2>
+                <h2 className="text-xl font-semibold">8. Contact Information</h2>
                 <div className="space-y-2 text-muted-foreground">
                   <p>
                     For any issues, complaints, or concerns regarding these terms or the service, please contact us at:
@@ -135,7 +150,7 @@ export default function TermsPage() {
               </div>
 
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold">8. Modifications</h2>
+                <h2 className="text-xl font-semibold">9. Modifications</h2>
                 <p className="text-muted-foreground">
                   We reserve the right to modify these terms at any time. Changes will be effective immediately upon posting. Your continued use of the service constitutes acceptance of any modifications.
                 </p>
